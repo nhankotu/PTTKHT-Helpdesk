@@ -1,0 +1,48 @@
+@startuml
+!pragma layout smetana
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 16
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+actor "Khách hàng" as Customer
+actor "Nhân viên hỗ trợ\n(Agent)" as Agent
+actor "Trưởng nhóm\n(Supervisor)" as Supervisor
+actor "Quản trị viên\n(Admin)" as Admin
+actor "Hệ thống kênh\nbên ngoài" as Channel
+rectangle "Nền tảng Helpdesk đa kênh" {
+  usecase "UC01\nGửi và tiếp nhận\nyêu cầu hỗ trợ" as UC01
+  usecase "UC02\nTạo và tổng hợp ticket" as UC02
+  usecase "UC03\nXử lý và cập nhật\ntrạng thái ticket" as UC03
+  usecase "UC04\nAI phân loại và\nđịnh tuyến ticket" as UC04
+  usecase "UC05\nTheo dõi SLA, cảnh báo\nvà chuyển cấp" as UC05
+  usecase "UC06\nQuản lý bài viết\nKnowledge Base" as UC06
+  usecase "UC07\nAI RAG gợi ý câu trả lời\ncó dẫn nguồn" as UC07
+  usecase "UC08\nXem báo cáo ticket,\nSLA và CSAT" as UC08
+}
+Customer -- UC01
+Customer -- UC02
+Customer -- UC03 : bổ sung/đánh giá
+Channel -- UC01
+Channel -- UC02
+Agent -- UC03
+Agent -- UC06 : soạn bài
+Agent -- UC07
+Supervisor -- UC03 : giám sát/cập nhật
+Supervisor -- UC04 : xử lý ngoại lệ
+Supervisor -- UC05
+Supervisor -- UC06 : duyệt/xuất bản
+Supervisor -- UC08
+Admin -- UC06
+Admin -- UC08
+note bottom of UC04
+  Tác vụ nội bộ được kích hoạt
+  khi ticket đã được tiếp nhận.
+  AI không phải Actor bên ngoài.
+end note
+note bottom of UC05
+  Kiểm tra thời gian do scheduler
+  nội bộ kích hoạt; không vẽ hệ thống
+  Helpdesk thành Actor.
+end note
+@enduml

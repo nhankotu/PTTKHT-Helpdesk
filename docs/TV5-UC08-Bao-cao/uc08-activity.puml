@@ -1,0 +1,44 @@
+@startuml
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 18
+skinparam shadowing false
+start
+:Mở báo cáo hoặc đổi kỳ;
+if (Đã đăng nhập?) then (Không)
+  :Chuyển tới đăng nhập;
+  stop
+endif
+if (Có quyền Supervisor/Admin?) then (Không)
+  :Hiện từ chối truy cập;
+  stop
+endif
+if (days là số nguyên 1..365?) then (Không)
+  :Báo kỳ không hợp lệ, giữ bộ lọc;
+  stop
+endif
+:Hiện trạng thái đang tải;
+:Lấy ticket/SLA/rating theo ngày tạo ticket;
+:Lấy cảnh báo theo ngày phát sinh (tối đa 30);
+if (Đọc dữ liệu thành công?) then (Không)
+  :Báo lỗi, không trình bày kết quả một phần;
+  :Cho thử lại cùng kỳ;
+  stop
+endif
+:Tổng hợp ticket, thời gian, SLA và CSAT;
+:Hiện từng khối riêng;
+note right
+  Tổng 0 vẫn hiện 0.
+  Trung bình chưa có mẫu hiện “—”.
+  Danh sách cảnh báo có thể có dữ liệu
+  dù cohort ticket không có bản ghi.
+end note
+if (Người dùng chọn một ticket?) then (Có)
+  :Kiểm tra quyền truy cập ticket;
+  if (Được phép?) then (Có)
+    :Mở chi tiết ticket của UC03;
+  else (Không)
+    :Hiện thông báo không truy cập được;
+  endif
+endif
+stop
+@enduml

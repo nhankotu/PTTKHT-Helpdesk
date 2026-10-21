@@ -1,0 +1,27 @@
+{
+  "description": "Tập đánh giá tổng hợp thủ công nhỏ, không phải dữ liệu khách hàng thật. Câu kiểm tra khác các câu huấn luyện tích hợp; cần mở rộng trước báo cáo cuối kỳ.",
+  "classification": [
+    {"text":"Mình muốn khôi phục mật khẩu để đăng nhập tài khoản", "label":"ACCOUNT"},
+    {"text":"Email xác nhận đổi mật khẩu chưa tới hộp thư", "label":"ACCOUNT"},
+    {"text":"Tài khoản của tôi bị khóa khi đăng nhập", "label":"ACCOUNT"},
+    {"text":"Cần đổi địa chỉ email đăng ký", "label":"ACCOUNT"},
+    {"text":"Đã chuyển khoản mà chưa có hóa đơn giao dịch", "label":"PAYMENT"},
+    {"text":"Xin thông tin giá gói và chi phí thanh toán", "label":"PAYMENT"},
+    {"text":"Ngân hàng đã trừ tiền nhưng dịch vụ chưa kích hoạt", "label":"PAYMENT"},
+    {"text":"Tôi cần hoàn tiền sau khi hủy gói", "label":"PAYMENT"},
+    {"text":"Trang báo lỗi 500 mỗi lần tôi mở báo cáo", "label":"TECHNICAL"},
+    {"text":"Ứng dụng bị treo và không tải dữ liệu mới", "label":"TECHNICAL"},
+    {"text":"Kết nối internet chậm và trình duyệt đứng màn hình", "label":"TECHNICAL"},
+    {"text":"Tôi cần xóa bộ nhớ đệm vì lỗi tải trang", "label":"TECHNICAL"}
+  ],
+  "retrieval": [
+    {"text":"Làm sao để đặt lại mật khẩu tài khoản?", "article_id":1},
+    {"text":"Kiểm tra hóa đơn thanh toán bằng cách nào?", "article_id":2},
+    {"text":"Trang báo lỗi kết nối và máy chủ 500", "article_id":3}
+  ],
+  "fallback": [
+    "Bạn có giao bưu phẩm tới Nam Cực không?",
+    "Tôi muốn gặp nhân viên để được tư vấn",
+    "Tôi yêu cầu hoàn tiền giao dịch"
+  ]
+}

@@ -1,0 +1,28 @@
+# Local runtime and credentials
+.env
+.env.*
+!.env.example
+*.sqlite*
+*.db
+*.db-journal
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+node_modules/
+.work/
+/helpdesk/data/
+.DS_Store
+Thumbs.db
+
+# Separate AIMS exercises and unrelated coursework kept locally
+/*.docx
+/Bai tap*.md
+/Bai03_assets/
+/NewBai*
+/AIMS-ProblemStatement-VI.pdf
+/Bieu_do_lop_phan_tich_Dat_cho_truc_tuyen.png
+/Package_Diagram_Online_Bookstore.png
+/package_diagram_generator.py

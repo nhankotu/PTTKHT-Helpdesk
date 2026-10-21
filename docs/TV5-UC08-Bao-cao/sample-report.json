@@ -1,0 +1,18 @@
+{
+  "as_of": "2026-10-21T12:00:00+07:00",
+  "days": 7,
+  "description": "Du lieu minh hoa thiet ke, khong phai so lieu van hanh",
+  "tickets": [
+    {"id": 101, "status": "CLOSED", "category": "ACCOUNT", "created_at": "2026-10-20T08:00:00+07:00", "first_response_at": "2026-10-20T09:00:00+07:00", "resolved_at": "2026-10-20T16:00:00+07:00", "response_due": "2026-10-20T12:00:00+07:00", "resolution_due": "2026-10-21T08:00:00+07:00", "score": 5},
+    {"id": 102, "status": "RESOLVED", "category": "PAYMENT", "created_at": "2026-10-20T10:00:00+07:00", "first_response_at": "2026-10-20T15:00:00+07:00", "resolved_at": "2026-10-21T06:00:00+07:00", "response_due": "2026-10-20T14:00:00+07:00", "resolution_due": "2026-10-21T10:00:00+07:00", "score": 4},
+    {"id": 103, "status": "IN_PROGRESS", "category": "TECHNICAL", "created_at": "2026-10-20T08:00:00+07:00", "first_response_at": "2026-10-20T10:00:00+07:00", "resolved_at": null, "response_due": "2026-10-20T12:00:00+07:00", "resolution_due": "2026-10-21T08:00:00+07:00", "score": null},
+    {"id": 104, "status": "WAITING_CUSTOMER", "category": "PAYMENT", "created_at": "2026-10-20T18:00:00+07:00", "first_response_at": "2026-10-21T00:00:00+07:00", "resolved_at": null, "response_due": "2026-10-20T22:00:00+07:00", "resolution_due": "2026-10-21T18:00:00+07:00", "score": null},
+    {"id": 105, "status": "NEW", "category": "ACCOUNT", "created_at": "2026-10-21T10:00:00+07:00", "first_response_at": null, "resolved_at": null, "response_due": "2026-10-21T14:00:00+07:00", "resolution_due": "2026-10-22T10:00:00+07:00", "score": null},
+    {"id": 106, "status": "IN_PROGRESS", "category": "TECHNICAL", "created_at": "2026-10-21T08:00:00+07:00", "first_response_at": "2026-10-21T09:00:00+07:00", "resolved_at": null, "response_due": "2026-10-21T12:00:00+07:00", "resolution_due": "2026-10-22T08:00:00+07:00", "score": null}
+  ],
+  "alerts": [
+    {"ticket_id": 103, "deadline_type": "RESOLUTION", "level": "OVERDUE", "created_at": "2026-10-21T08:00:00+07:00"},
+    {"ticket_id": 103, "deadline_type": "RESOLUTION", "level": "WARNING", "created_at": "2026-10-21T03:12:00+07:00"},
+    {"ticket_id": 102, "deadline_type": "RESPONSE", "level": "OVERDUE", "created_at": "2026-10-20T14:00:00+07:00"}
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "total": 6,
+  "open": 4,
+  "overdue": 1,
+  "avg_response_seconds": 10800.0,
+  "avg_resolution_seconds": 50400.0,
+  "response_sample_count": 5,
+  "resolution_sample_count": 2,
+  "sla_compliance": 62.5,
+  "assessed_count": 8,
+  "met_count": 5,
+  "csat": 4.5,
+  "rating_count": 2,
+  "statuses": {
+    "CLOSED": 1,
+    "RESOLVED": 1,
+    "IN_PROGRESS": 2,
+    "WAITING_CUSTOMER": 1,
+    "NEW": 1
+  },
+  "categories": {
+    "ACCOUNT": 2,
+    "PAYMENT": 2,
+    "TECHNICAL": 2
+  },
+  "alerts": [
+    {
+      "ticket_id": 103,
+      "deadline_type": "RESOLUTION",
+      "level": "OVERDUE",
+      "created_at": "2026-10-21T08:00:00+07:00"
+    },
+    {
+      "ticket_id": 103,
+      "deadline_type": "RESOLUTION",
+      "level": "WARNING",
+      "created_at": "2026-10-21T03:12:00+07:00"
+    },
+    {
+      "ticket_id": 102,
+      "deadline_type": "RESPONSE",
+      "level": "OVERDUE",
+      "created_at": "2026-10-20T14:00:00+07:00"
+    }
+  ]
+}

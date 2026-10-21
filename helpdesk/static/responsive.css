@@ -1,0 +1,27 @@
+.detail-meta + .actions { margin-top: 20px; }
+.distribution + .note { margin-top: 20px; }
+.data-table { min-width: 760px; }
+
+@media (max-width: 850px) {
+  .userbox { flex-direction: column; }
+  .userbox .logout { display: block; margin-left: 0; }
+  .nav span {
+    display: inline;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 550px) {
+  .page-head { flex-direction: column; align-items: stretch; gap: 18px; }
+  .page-head > .badge { align-self: flex-start; }
+  .page-head > .actions { justify-content: flex-start; }
+  .pagination { flex-wrap: wrap; gap: 12px; }
+  .table-wrap { overscroll-behavior-x: contain; }
+}

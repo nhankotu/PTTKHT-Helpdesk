@@ -1,0 +1,33 @@
+@startuml
+!pragma layout smetana
+left to right direction
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 18
+skinparam shadowing false
+actor "Supervisor" as S
+actor "Admin" as A
+rectangle "Helpdesk — Báo cáo ticket, SLA và CSAT" {
+  usecase "UC08\nXem báo cáo ticket, SLA và CSAT\n--\nĐiểm mở rộng: đã có kết quả" as U
+  usecase "UC08.1\nXem thống kê ticket" as T
+  usecase "UC08.2\nXem thống kê SLA" as L
+  usecase "UC08.3\nXem thống kê CSAT" as C
+  usecase "UC08.4\nMở ticket từ báo cáo" as D
+  U ..> T : <<include>>
+  U ..> L : <<include>>
+  U ..> C : <<include>>
+  D ..> U : <<extend>>\n[chọn ticket/cảnh báo]
+}
+S -- U
+A -- U
+S -- D
+A -- D
+note bottom of U
+  Đăng nhập và có quyền là tiền điều kiện.
+  Mỗi lần tải báo cáo đều có đủ 3 khối thống kê,
+  kể cả khi một khối chưa có dữ liệu.
+end note
+note bottom of D
+  Kiểm tra lại quyền trên ticket.
+  Chi tiết ticket tái sử dụng màn hình của UC03.
+end note
+@enduml
