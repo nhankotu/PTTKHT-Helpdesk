@@ -100,7 +100,7 @@ Nguồn: [PlantUML](TV5-UC08-Bao-cao/phan-ra-use-case.puml) · [SVG](TV5-UC08-Ba
 | UC08.1 | UC08 đã xác thực kỳ và quyền | 1. Lấy cohort. 2. Đếm tổng/đang mở. 3. Nhóm theo trạng thái/danh mục. 4. Trả số lượng | Không có ticket: tổng 0; danh mục chưa xác định hiển thị riêng, không làm mất ticket |
 | UC08.2 | Cùng cohort UC08.1 và mốc chốt | 1. Lấy SLA từng ticket. 2. Tính trung bình. 3. Xét các mốc đến hạn/hoàn tất. 4. Tính tuân thủ, đang quá hạn. 5. Lấy cảnh báo theo kỳ phát sinh | Mẫu số 0: null. Mốc chưa đến hạn/chưa hoàn tất: loại khỏi mẫu số. Cảnh báo lịch sử không đồng nhất với số ticket đang quá hạn |
 | UC08.3 | Cùng cohort UC08.1 | 1. Lấy rating hợp lệ của cohort. 2. Đếm lượt. 3. Tính trung bình điểm 1–5. 4. Trả điểm và số lượt | Không có rating: null và 0 lượt; không giả thành điểm 0 |
-| UC08.4 | Người dùng chọn ticket sau khi đã có báo cáo | 1. Nhận ticketId từ dòng cảnh báo. 2. Kiểm tra lại quyền. 3. Mở màn chi tiết UC03. 4. Quay lại giữ kỳ/tab | 403/404: báo không truy cập được, không hiện dữ liệu ticket; bộ lọc vẫn giữ |
+| UC08.4 | Người dùng chọn một ticket từ dòng cảnh báo sau khi đã có báo cáo | 1. Nhận ticketId từ dòng cảnh báo. 2. Kiểm tra lại quyền. 3. Mở màn chi tiết UC03. 4. Quay lại giữ kỳ/tab | 403/404: báo không truy cập được, không hiện dữ liệu ticket; bộ lọc vẫn giữ |
 
 ## 5. Quy tắc KPI, dữ liệu và ví dụ đối chiếu
 
@@ -162,7 +162,207 @@ Nguồn: [PlantUML](TV5-UC08-Bao-cao/uc08-analysis-class.puml) · [SVG](TV5-UC08
 
 Ticket liên kết một TicketSla, tối đa một Rating và nhiều SlaAlert. DTO là nhóm dữ liệu tạm cho lần đọc. ReportRepository/ReportController là **lớp đề xuất**, chưa phải lớp đang tồn tại trong code: prototype hiện thực truy vấn và tính toán trực tiếp trong hàm reports() tại [main.py](../helpdesk/app/main.py).
 
-### 6.2. Giao diện module nội bộ
+#### 6.1.1. Class Diagram miền nghiệp vụ UC08
+
+Sơ đồ dưới đây chỉ mô tả thực thể nghiệp vụ và quan hệ dữ liệu mà báo cáo cần đọc; không đưa `ReportDashboard`, `ReportController`, `ReportRepository` hoặc DTO vào mô hình miền. Đây là bản phân tích logic, còn tên/cột cụ thể cần đối chiếu với schema triển khai ở bước thiết kế database.
+
+Nguồn Mermaid: [uc08-class-domain.mmd](TV5-UC08-Bao-cao/uc08-class-domain.mmd).
+
+```mermaid
+classDiagram
+direction LR
+class Ticket {
+  +int id
+  +int customerId
+  +Channel channel
+  +TicketStatus status
+  +Priority priority
+  +datetime createdAt
+}
+class User {
+  +int id
+  +string name
+  +UserRole role
+}
+class Team {
+  +int id
+  +string name
+}
+class Category {
+  +string code
+  +string name
+}
+class SlaPolicy {
+  +int id
+  +int version
+  +Priority priority
+  +int responseSeconds
+  +int resolutionSeconds
+}
+class TicketSla {
+  +int ticketId
+  +int policyId
+  +datetime responseDue
+  +datetime resolutionDue
+  +datetime firstResponseAt
+  +datetime resolvedAt
+}
+class Rating {
+  +int ticketId
+  +int userId
+  +int score
+  +datetime createdAt
+}
+class SlaAlert {
+  +int id
+  +int ticketId
+  +DeadlineType deadlineType
+  +AlertLevel level
+  +datetime createdAt
+}
+Ticket "0..*" --> "1" User : customer
+Ticket "0..*" --> "0..1" User : assignee
+Ticket "0..*" --> "0..1" Team : routed team
+Ticket "0..*" --> "0..1" Category : category
+Ticket "1" *-- "1" TicketSla : SLA snapshot
+SlaPolicy "1" <-- "0..*" TicketSla : applied policy
+Ticket "1" *-- "0..1" Rating : evaluation
+Ticket "1" *-- "0..*" SlaAlert : alert history
+```
+
+File `.mmd` là nguồn đầy đủ, gồm cả các enum trạng thái, mức ưu tiên, vai trò và loại cảnh báo. Quan hệ một ticket–một `TicketSla` và tối đa một `Rating` phản ánh schema hiện tại. Phần UC08 dùng `Ticket.createdAt/status/category`, `TicketSla` cho KPI thời gian/SLA, `Rating.score` cho CSAT, và `SlaAlert.createdAt` cho danh sách cảnh báo. Nhãn “khách hàng” và “người được phân công” là hai vai trò liên kết tới `User`, không phải hai bảng user riêng.
+
+#### 6.1.2. Truy vết KPI sang lớp miền
+
+| Chỉ số UC08 | Lớp/thuộc tính nguồn | Quy tắc lấy mẫu |
+|---|---|---|
+| Tổng, đang mở, theo trạng thái | `Ticket.createdAt`, `Ticket.status` | Cohort theo ngày tạo; đang mở loại `RESOLVED`, `CLOSED` |
+| Phân bố danh mục | `Ticket.category` → `Category.code` | Giữ nhóm chưa phân loại để tổng nhóm bằng tổng ticket |
+| Thời gian phản hồi/giải quyết TB | `Ticket.createdAt`, `TicketSla.firstResponseAt`, `TicketSla.resolvedAt` | Chỉ lấy ticket có actual tương ứng; không tính tin nhắn chưa gửi thành công |
+| SLA compliance / đang quá hạn | `TicketSla.responseDue`, `resolutionDue`, actual tương ứng | Mốc đủ điều kiện theo asOf; ticket quá hạn đếm tối đa một lần |
+| CSAT và số lượt | `Rating.score`, quan hệ `Rating.ticketId` | Điểm 1–5; rating thuộc ticket trong cohort ngày tạo |
+| Lịch sử cảnh báo | `SlaAlert.createdAt`, `deadlineType`, `level`, `ticketId` | Lọc theo ngày phát sinh, độc lập cohort ticket; tối đa 30 mới nhất |
+
+Mô hình lớp miền UC08 làm căn cứ cho ERD/lược đồ bảng; giữ nguyên các quan hệ, bội số và quy tắc KPI đã truy vết.
+
+### 6.2. ERD và lược đồ dữ liệu phục vụ UC08
+
+ERD dưới đây ánh xạ Class Diagram sang các bảng prototype hiện có. Mermaid là nguồn sơ đồ để xem/chỉnh sửa khi không xuất được PNG; sơ đồ chỉ gồm các bảng cần thiết cho báo cáo và các bảng tham chiếu danh mục/người dùng.
+
+Nguồn Mermaid: [uc08-erd.mmd](TV5-UC08-Bao-cao/uc08-erd.mmd).
+
+```mermaid
+erDiagram
+  USERS {
+    INTEGER id PK
+    TEXT name
+    TEXT role
+  }
+  TEAMS {
+    INTEGER id PK
+    TEXT name UK
+  }
+  CATEGORIES {
+    TEXT code PK
+    TEXT name
+    INTEGER team_id FK
+  }
+  SLA_POLICIES {
+    INTEGER id PK
+    INTEGER version
+    TEXT priority
+    INTEGER response_seconds
+    INTEGER resolution_seconds
+  }
+  TICKETS {
+    INTEGER id PK
+    INTEGER customer_id FK
+    TEXT category FK
+    INTEGER team_id FK
+    INTEGER assignee_id FK
+    TEXT status
+    TEXT priority
+    REAL created_at
+    REAL updated_at
+  }
+  TICKET_SLA {
+    INTEGER ticket_id PK, FK
+    INTEGER policy_id FK
+    REAL response_due
+    REAL resolution_due
+    REAL first_response_at
+    REAL resolved_at
+  }
+  RATINGS {
+    INTEGER ticket_id PK, FK
+    INTEGER customer_id FK
+    INTEGER score
+    TEXT comment
+    REAL created_at
+  }
+  SLA_ALERTS {
+    INTEGER id PK
+    INTEGER ticket_id FK
+    TEXT deadline_type
+    TEXT level
+    REAL created_at
+  }
+  USERS ||--o{ TICKETS : customer
+  USERS o|--o{ TICKETS : assignee
+  TEAMS o|--o{ USERS : membership
+  TEAMS o|--o{ TICKETS : assigned_team
+  TEAMS ||--o{ CATEGORIES : routes
+  CATEGORIES o|--o{ TICKETS : classifies
+  TICKETS ||--|| TICKET_SLA : has_sla
+  SLA_POLICIES ||--o{ TICKET_SLA : applied_to
+  TICKETS ||--o| RATINGS : receives
+  USERS ||--o{ RATINGS : submits
+  TICKETS ||--o{ SLA_ALERTS : produces
+```
+
+#### Từ điển dữ liệu UC08
+
+Các bảng dưới đây phản ánh schema hiện tại trong [db.py](../helpdesk/app/db.py); thời gian lưu dạng Unix epoch giây (`REAL`). `NOT NULL`/`CHECK` được ghi theo định nghĩa đang triển khai. Tên cột `created_at` trong `ratings` là thời điểm đánh giá, còn cohort CSAT vẫn xác định qua `tickets.created_at`.
+
+| Bảng | Cột liên quan | Khóa/ràng buộc hiện có | Vai trò với UC08 |
+|---|---|---|---|
+| `tickets` | `id`, `customer_id`, `category`, `team_id`, `assignee_id`, `status`, `priority`, `created_at`, `updated_at` | PK `id`; FK đến `users`, `categories`, `teams`; `category`, `team_id`, `assignee_id` nullable; `status` và `priority` có CHECK | Cohort ticket; đếm tổng/đang mở; nhóm trạng thái/danh mục; liên kết người/nhóm khi hiển thị cảnh báo |
+| `ticket_sla` | `ticket_id`, `policy_id`, `response_due`, `resolution_due`, `first_response_at`, `resolved_at` | PK/FK `ticket_id` → `tickets`; FK `policy_id`; due bắt buộc, actual nullable | Mẫu số, tuân thủ SLA, đang quá hạn, thời gian phản hồi/giải quyết |
+| `sla_policies` | `id`, `version`, `priority`, `response_seconds`, `resolution_seconds` | PK `id`; UNIQUE(`version`,`priority`) | Giải nghĩa chính sách đã áp dụng; thời hạn cụ thể của ticket vẫn lấy từ snapshot due ở `ticket_sla` |
+| `ratings` | `ticket_id`, `customer_id`, `score`, `comment`, `created_at` | PK/FK `ticket_id`; FK `customer_id`; CHECK score 1–5 | Điểm CSAT và số lượt; tối đa một đánh giá/ticket trong schema hiện tại |
+| `sla_alerts` | `id`, `ticket_id`, `deadline_type`, `level`, `created_at` | PK `id`; FK `ticket_id`; UNIQUE(`ticket_id`,`deadline_type`,`level`) | Lịch sử cảnh báo, lọc theo ngày phát sinh và giới hạn 30 dòng gần nhất |
+| `categories` | `code`, `name`, `team_id` | PK `code`; FK `team_id` bắt buộc | Nhãn danh mục và ánh xạ nhóm; ticket chưa phân loại có `tickets.category = NULL` |
+| `teams` | `id`, `name` | PK `id`; UNIQUE `name` | Tên nhóm của ticket trong bảng cảnh báo |
+| `users` | `id`, `name`, `role`, `team_id` | PK `id`; role CHECK; `team_id` nullable | Danh tính customer/assignee và ranh giới quyền; báo cáo chỉ dành Supervisor/Admin |
+
+#### Chỉ mục và nhất quán truy vấn
+
+Schema hiện có chỉ mục `ticket_queue(team_id,status,updated_at)` và `ticket_customer(customer_id,updated_at)`; `ticket_sla.ticket_id` và `ratings.ticket_id` có chỉ mục do là khóa chính. Các truy vấn UC08 lọc ticket theo `created_at` và cảnh báo theo `created_at`, nên đề xuất cân nhắc hai chỉ mục sau khi đo trên dữ liệu đại diện:
+
+```sql
+CREATE INDEX idx_tickets_created_at_id ON tickets(created_at, id);
+CREATE INDEX idx_sla_alerts_created_at_id ON sla_alerts(created_at DESC, id DESC);
+```
+
+Thứ tự cảnh báo nên xác định tường minh `created_at DESC, id DESC` để ổn định khi nhiều dòng cùng thời điểm. Nếu triển khai các chỉ mục này, cần thêm migration có phiên bản; chưa thay đổi schema ứng dụng trong bước thiết kế này.
+
+Mỗi lần tạo báo cáo nên xác định một `asOf` duy nhất, rồi đọc Ticket/SLA, Rating và Alert trong cùng read transaction/snapshot. `asOf` và kết quả tổng hợp không cần bảng lưu riêng cho báo cáo tức thời; các KPI được tính từ dữ liệu nghiệp vụ. Snapshot nhất quán là yêu cầu xử lý truy vấn, không phải bảo đảm mà schema hiện tại tự cung cấp.
+
+#### Rà soát khả năng tính KPI
+
+| KPI | Điều kiện truy vấn | Lưu ý thiết kế |
+|---|---|---|
+| Tổng/đang mở/trạng thái | `tickets.created_at` trong kỳ; nhóm theo `status` | Cohort lấy theo thời điểm tạo ticket |
+| Danh mục | Cùng cohort; nhóm theo `category` | Cộng thêm nhóm “Chưa phân loại” cho `NULL` để tổng phân bố khớp tổng ticket |
+| Phản hồi/giải quyết trung bình | JOIN `ticket_sla`; lấy actual khác NULL trừ `tickets.created_at` | `first_response_at` chỉ được ghi khi phản hồi gửi thành công; đơn vị nội bộ là giây |
+| Tuân thủ SLA | Mỗi mốc phản hồi/giải quyết đủ điều kiện so actual với due | Due/actual ở `ticket_sla`; chính sách được giữ qua `policy_id` |
+| Ticket đang quá hạn | Actual còn NULL và due < `asOf` ở ít nhất một mốc | Đếm ticket một lần dù cả hai mốc cùng quá hạn |
+| CSAT | JOIN `ratings` theo ticket trong cohort; `AVG(score)`, `COUNT(*)` | Không lọc cohort theo `ratings.created_at`; không có mẫu trả null và 0 lượt |
+| Cảnh báo | `sla_alerts.created_at` trong kỳ, sắp xếp mới nhất | Lọc độc lập cohort ticket, tối đa 30; không dùng số alert làm số ticket quá hạn |
+
+**Chênh lệch cần xử lý khi hiện thực/ nghiệm thu:** code báo cáo hiện không cộng bucket `category = NULL` vào map danh mục; truy vấn cảnh báo sắp theo `id DESC`; và các truy vấn riêng chưa được bọc trong một snapshot đọc thống nhất. Đây là điểm cần đưa vào backlog nếu nhóm muốn UI đáp ứng đầy đủ đặc tả và tính nhất quán đã chốt, không phải thay đổi đã triển khai.
+
+### 6.3. Giao diện module nội bộ
 
 ![Hình 5 — Giao diện module báo cáo](TV5-UC08-Bao-cao/uc08-report-components.png)
 
@@ -181,11 +381,74 @@ UC08 không có subsystem bên ngoài tương tự Interbank của AIMS. Phần 
 
 ### 7.1. Biểu đồ trình tự
 
-![Hình 6 — Trình tự UC08](TV5-UC08-Bao-cao/uc08-sequence.png)
+```mermaid
+sequenceDiagram
+  autonumber
+  actor User as Supervisor/Admin
+  participant UI as ReportDashboard
+  participant RC as ReportController
+  participant Repo as ReportRepository
+  participant Ticket as TicketService UC03
+  User->>UI: openReport(days), mặc định 30
+  UI->>UI: showLoading()
+  UI->>RC: getReport(requester, days)
+  activate RC
+  RC->>RC: authorizeAndValidate(requester, days)
+  alt Chưa đăng nhập, sai quyền hoặc days không hợp lệ
+    RC-->>UI: 401 / 403 / 422
+    UI-->>User: Đăng nhập, từ chối truy cập hoặc sửa kỳ
+  else Yêu cầu hợp lệ
+    Note over RC,Repo: from = asOf - days × 24 giờ; ticket/SLA/rating theo tickets.created_at; alert theo sla_alerts.created_at
+    RC->>Repo: loadReportData(from, asOf)
+    activate Repo
+    alt Lỗi đọc dữ liệu
+      Repo-->>RC: DataAccessError
+      RC-->>UI: REPORT_UNAVAILABLE
+      UI-->>User: Báo lỗi và cho thử lại cùng kỳ
+    else Đọc thành công
+      Repo-->>RC: ReportData
+      deactivate Repo
+      RC->>RC: aggregateMetrics(data, asOf)
+      RC-->>UI: ReportSummary
+      UI->>UI: showSummary(report)
+      UI-->>User: Hiện ticket, SLA, CSAT; KPI null hiện “—”
+      opt Người dùng chọn ticket từ cảnh báo (UC08.4)
+        User->>UI: select(ticketId)
+        UI->>Ticket: openTicket(requester, ticketId)
+        activate Ticket
+        Ticket->>Ticket: authorizeTicketAccess(requester, ticketId)
+        alt Được phép
+          Ticket-->>UI: TicketDetail
+          UI-->>User: Mở chi tiết ticket (UC03)
+        else Ticket không tồn tại hoặc không đủ quyền
+          Ticket-->>UI: 403 / 404
+          UI-->>User: Giữ báo cáo/kỳ và báo không truy cập được
+        end
+        deactivate Ticket
+      end
+    end
+  end
+  deactivate RC
+```
 
-Nguồn: [PlantUML](TV5-UC08-Bao-cao/uc08-sequence.puml) · [SVG](TV5-UC08-Bao-cao/uc08-sequence.svg).
+Nguồn Mermaid: [uc08-sequence.mmd](TV5-UC08-Bao-cao/uc08-sequence.mmd). Nguồn PlantUML tương đương: [uc08-sequence.puml](TV5-UC08-Bao-cao/uc08-sequence.puml). PNG cũ không được dùng làm hình chính vì chưa có nhánh UC08.4 mới.
 
-Biểu đồ bao gồm luồng thành công và nhánh sai quyền/tham số, lỗi đọc dữ liệu. Thiếu mẫu là trạng thái từng khối, không phải điều kiện xóa toàn bộ báo cáo.
+Biểu đồ bao gồm luồng thành công, nhánh sai quyền/tham số, lỗi đọc dữ liệu và UC08.4 tùy chọn. UC08.4 gọi lại dịch vụ ticket thuộc UC03 để kiểm tra quyền tại thời điểm mở; không suy ra quyền từ việc ticket xuất hiện trong báo cáo. Thiếu mẫu là trạng thái từng khối, không phải điều kiện xóa toàn bộ báo cáo.
+
+#### Hợp đồng tương tác của biểu đồ trình tự
+
+| Bước | Người gửi → người nhận | Thông điệp / dữ liệu | Kết quả hoặc nhánh |
+|---|---|---|---|
+| 1 | Supervisor/Admin → ReportDashboard | `openReport(days)`; mặc định `days=30` | Hiện trạng thái đang tải |
+| 1.1 | ReportDashboard → ReportController | `getReport(requester, days)` | Kiểm tra phiên, vai trò và miền 1–365 |
+| 1.1.1 | ReportController → ReportController | `authorizeAndValidate(requester, days)` | 401/403/422 thì trả lỗi, không truy vấn số liệu |
+| 1.1.2 | ReportController → ReportRepository | `loadReportData(from, asOf)` | Ticket/SLA/rating theo cohort ngày tạo; cảnh báo theo ngày phát sinh, tối đa 30 |
+| 1.1.3 | ReportController → ReportController | `aggregateMetrics(data, asOf)` | Tạo ba khối UC08.1–UC08.3; giá trị thiếu mẫu là null |
+| 1.2 | ReportController → ReportDashboard → Actor | `ReportSummary` / `showSummary(report)` | Hiện số 0 cho bộ đếm rỗng, “—” cho KPI không có mẫu |
+| 2 | Actor → ReportDashboard → TicketService (UC03) | `openTicket(requester, ticketId)` | Chỉ chạy khi chọn ticket (điểm mở rộng UC08.4); kiểm tra quyền lại |
+| 2.1 | TicketService → ReportDashboard → Actor | `TicketDetail` hoặc 403/404 | Được phép thì mở chi tiết; nếu lỗi giữ báo cáo và kỳ đã chọn |
+
+Các lời gọi `TicketService` là tương tác với chức năng xem chi tiết ticket của UC03, không phải một phần truy vấn KPI. Tên lớp dịch vụ mô tả điểm tích hợp mức thiết kế; cần ánh xạ sang controller/route thực tế của nhóm khi chốt kiến trúc.
 
 ### 7.2. Biểu đồ giao tiếp
 
@@ -206,7 +469,32 @@ Luồng lỗi dùng showError(error); showLoading() thể hiện phản hồi l�
 
 ### 7.3. Biểu đồ hoạt động
 
-![Hình 8 — Hoạt động và nhánh lỗi UC08](TV5-UC08-Bao-cao/uc08-activity.png)
+```mermaid
+flowchart TD
+  A([Bắt đầu]) --> B[Mở báo cáo hoặc đổi kỳ]
+  B --> C{Đã đăng nhập?}
+  C -- Không --> C1[Chuyển tới đăng nhập] --> Z([Kết thúc])
+  C -- Có --> D{Có quyền Supervisor/Admin?}
+  D -- Không --> D1[Hiện từ chối truy cập] --> Z
+  D -- Có --> E{days là số nguyên 1..365?}
+  E -- Không --> E1[Báo kỳ không hợp lệ, giữ bộ lọc] --> Z
+  E -- Có --> F[Hiện trạng thái đang tải]
+  F --> G[Lấy ticket, SLA, rating theo ngày tạo ticket]
+  G --> H[Lấy tối đa 30 cảnh báo theo ngày phát sinh]
+  H --> I{Đọc dữ liệu thành công?}
+  I -- Không --> I1[Báo lỗi, không hiện kết quả một phần]
+  I1 --> I2[Cho thử lại cùng kỳ] --> Z
+  I -- Có --> J[Tổng hợp ticket, thời gian, SLA và CSAT]
+  J --> K[Hiện từng khối; bộ đếm rỗng là 0, KPI thiếu mẫu là —]
+  K --> L{Chọn ticket từ dòng cảnh báo?}
+  L -- Không --> Z
+  L -- Có --> M[Kiểm tra lại quyền trên ticket]
+  M --> N{Được phép?}
+  N -- Có --> O[Mở chi tiết ticket theo UC03] --> Z
+  N -- Không --> P[Báo không truy cập được; giữ báo cáo và kỳ] --> Z
+```
+
+Nguồn Mermaid: [uc08-activity.mmd](TV5-UC08-Bao-cao/uc08-activity.mmd) · nguồn PlantUML: [uc08-activity.puml](TV5-UC08-Bao-cao/uc08-activity.puml). PNG hiện có chưa được dựng lại sau khi làm rõ UC08.4 chỉ mở ticket từ dòng cảnh báo.
 
 Nguồn: [PlantUML](TV5-UC08-Bao-cao/uc08-activity.puml) · [SVG](TV5-UC08-Bao-cao/uc08-activity.svg).
 
@@ -331,14 +619,28 @@ Các lỗi 401/403/422 gắn với xác thực/quyền/validation của prototyp
 | Thông điệp không khớp thao tác lớp | Đã thống nhất openReport, getReport, authorizeAndValidate, loadReportData, aggregateMetrics, showSummary |
 | Gọi Repository là lớp đã có trong code | Đã ghi rõ là thiết kế đề xuất, đối chiếu prototype tại mục 9 |
 | GUI chỉ là wireframe | Đã có quy chuẩn, chuyển màn hình, control, trường dữ liệu và sáu mockup PNG |
-| Chưa xuất ảnh/kiểm tra render | Đã xuất chín sơ đồ PNG/SVG, xem trực tiếp ảnh và chỉnh lỗi chữ/bố cục |
+| Chưa xuất ảnh/kiểm tra render | Các sơ đồ PlantUML ban đầu có PNG/SVG; Sequence và Activity đã được cập nhật bằng nguồn Mermaid nhúng vì môi trường hiện tại không có PlantUML để dựng ảnh mới |
 | Số wireframe không kiểm tra được | Đã dùng một bộ sáu ticket nhất quán, có dữ liệu gốc và script tính/sinh hình |
 
 Các thông tin còn cần nhóm cung cấp/xác nhận: họ tên/MSSV TV5; người review/duyệt thật; công thức cohort, CSAT trung bình và quyền Admin; mẫu bài 01 khi có; định dạng nộp cuối cùng và yêu cầu dùng Astah nếu giảng viên quy định. Không tự ghi tên reviewer hoặc đánh dấu nhóm đã nghiệm thu.
 
+### 11.1. Rà soát truy vết và nhất quán cuối vòng
+
+| Quyết định nghiệp vụ | Use Case / đặc tả | Activity / Sequence | Class / ERD | Kết quả rà soát |
+|---|---|---|---|---|
+| Actor chỉ Supervisor/Admin; phải đăng nhập và có quyền | Mục 2, 4; E1–E2 | Kiểm tra trước truy vấn | `users.role`; không lưu quyền báo cáo riêng | Nhất quán; quyền trên ticket được kiểm tra lại riêng |
+| Kỳ mặc định 30 ngày, miền API 1–365 | Mục 4; A1/E3 | Validate `days` trước khi đọc dữ liệu | Không cần bảng báo cáo hay bảng kỳ | Nhất quán |
+| Ticket/SLA/CSAT theo cohort ngày tạo | Mục 5.1–5.2 | Lấy dữ liệu theo `tickets.created_at` | `tickets`, `ticket_sla`, `ratings` | Nhất quán; rating.created_at không xác định cohort |
+| Cảnh báo lọc theo ngày phát sinh, độc lập cohort, tối đa 30 | Mục 4.2 A5, 5.1 | Đọc `sla_alerts` riêng | `sla_alerts.created_at` và quan hệ ticket | Nhất quán; không đồng nghĩa số ticket đang quá hạn |
+| UC08.4 tùy chọn từ một dòng cảnh báo | Mục 3, 4.3 | Chỉ nhánh chọn ticket từ cảnh báo | Mở ticket theo UC03; kiểm tra quyền | Đã đồng bộ Activity và Sequence Mermaid |
+| Không có mẫu thì KPI null/“—”; bộ đếm là 0 | Mục 4.2–5.2 | Hiện từng khối, không xóa cả báo cáo | Không cần lưu giá trị tổng hợp | Nhất quán |
+| Không thay đổi dữ liệu nghiệp vụ khi xem báo cáo | Mục 4 | Repository chỉ đọc; UC08.4 chuyển sang luồng UC03 | Tận dụng bảng nghiệp vụ hiện có | Nhất quán |
+
+Điểm cần nhóm chốt trước khi nộp: cách tính kỳ theo 24 giờ hay ngày lịch/múi giờ; quyền Admin toàn hệ thống; cách hiện bucket chưa phân loại; và yêu cầu snapshot nhất quán khi đọc nhiều bảng. Các quyết định này cần cập nhật đồng thời đặc tả, biểu đồ và truy vấn nếu thay đổi.
+
 ## 12. Danh mục nguồn và cách tái tạo hình
 
-Chín file .puml nằm trong [thư mục sơ đồ](TV5-UC08-Bao-cao/uc08-use-case-chi-tiet.puml): use-case-tong-the, phan-ra-use-case, uc08-use-case-chi-tiet, uc08-analysis-class, uc08-sequence, uc08-communication, uc08-activity, uc08-screen-flow, uc08-report-components. Mỗi file có bản .png và .svg cùng tên.
+Chín file .puml nằm trong thư mục sơ đồ. Các nguồn Mermaid dùng cho mô hình lớp miền, ERD và phiên bản Activity/Sequence mới nhất là [uc08-class-domain.mmd](TV5-UC08-Bao-cao/uc08-class-domain.mmd), [uc08-erd.mmd](TV5-UC08-Bao-cao/uc08-erd.mmd), [uc08-activity.mmd](TV5-UC08-Bao-cao/uc08-activity.mmd) và [uc08-sequence.mmd](TV5-UC08-Bao-cao/uc08-sequence.mmd). Mermaid của Activity/Sequence được nhúng trong tài liệu để thay thế ảnh PNG/SVG cũ chưa phản ánh các lần chỉnh sửa gần nhất.
 
 Sáu mockup giao diện sinh bởi [render_mockups.py](TV5-UC08-Bao-cao/render_mockups.py); dữ liệu từ sample-report.json. Script chỉ đọc dữ liệu minh họa và ghi ảnh/kết quả vào thư mục này, không kết nối DB ứng dụng.
 

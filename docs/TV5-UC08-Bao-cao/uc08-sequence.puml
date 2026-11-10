@@ -6,6 +6,7 @@ actor "Supervisor hoặc Admin" as User
 boundary ReportDashboard as UI
 control ReportController as RC
 participant "ReportRepository\n<<repository>>" as Repo
+participant "TicketService\n(UC03)" as Ticket
 User -> UI: 1: openReport(days)
 UI -> UI: showLoading()
 UI -> RC: 1.1: getReport(requester, days)
@@ -35,6 +36,20 @@ else Hợp lệ
     RC --> UI: report: ReportSummary
     UI -> UI: 1.2: showSummary(report)
     UI --> User: Hiện từng khối; thiếu mẫu thì hiện “—”
+    opt Người dùng chọn ticket từ cảnh báo (UC08.4)
+      User -> UI: Chọn ticketId
+      UI -> Ticket: openTicket(requester, ticketId)
+      activate Ticket
+      Ticket -> Ticket: authorizeTicketAccess(requester, ticketId)
+      alt Được phép xem ticket
+        Ticket --> UI: ticket: TicketDetail
+        UI --> User: Hiện chi tiết ticket (UC03)
+      else Không tồn tại hoặc không đủ quyền
+        Ticket --> UI: error: 403 / 404
+        UI --> User: Báo không truy cập được; giữ báo cáo/kỳ
+      end
+      deactivate Ticket
+    end
   end
   deactivate Repo
 end

@@ -32,7 +32,7 @@ note right
   Danh sách cảnh báo có thể có dữ liệu
   dù cohort ticket không có bản ghi.
 end note
-if (Người dùng chọn một ticket?) then (Có)
+if (Người dùng chọn ticket từ dòng cảnh báo?) then (Có)
   :Kiểm tra quyền truy cập ticket;
   if (Được phép?) then (Có)
     :Mở chi tiết ticket của UC03;
