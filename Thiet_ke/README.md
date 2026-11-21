@@ -6,6 +6,7 @@ Thư mục này chứa toàn bộ tài liệu thiết kế **Use Case** và **C�
 - **Thiết kế Use Case tổng hợp & Bảng xử lý xung đột:** [01_Thiet_Ke_Use_Case_Tong_Hop.md](./01_Thiet_Ke_Use_Case_Tong_Hop.md)
 - **Thiết kế Cơ sở dữ liệu tổng hợp (MySQL 8.0+):** [02_Thiet_Ke_Database_Tong_Hop.md](./02_Thiet_Ke_Database_Tong_Hop.md)
 - **Hướng dẫn tích hợp AI (OpenAI / ChatGPT API):** [03_Huong_Dan_Tich_Hop_AI_OpenAI.md](./03_Huong_Dan_Tich_Hop_AI_OpenAI.md)
+- **Hợp đồng REST API chi tiết (UC00–UC08, RBAC, DTO, RFC 7807):** [04_Hop_Dong_REST_API.md](./04_Hop_Dong_REST_API.md)
 - **Script DDL MySQL 8.0+ (34 bảng + 1 View):** [helpdesk_unified_schema_mysql.sql](./helpdesk_unified_schema_mysql.sql)
 
 ### Sơ đồ tổng thể

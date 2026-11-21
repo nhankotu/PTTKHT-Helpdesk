@@ -12,6 +12,10 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 node_modules/
+target/
+backend/target/
+.idea/
+*.iml
 .work/
 /helpdesk/data/
 .DS_Store
