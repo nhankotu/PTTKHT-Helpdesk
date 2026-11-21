@@ -85,7 +85,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/kb/**").hasAnyRole("AGENT", "SUPERVISOR", "ADMIN")
                         // Supervisor & Admin scopes
                         .requestMatchers("/api/v1/reports/**", "/api/v1/routing/**", "/api/v1/sla/**").hasAnyRole("SUPERVISOR", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/admin/users", "/api/v1/admin/channels", "/api/v1/admin/inbound-events").hasAnyRole("SUPERVISOR", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/admin/teams/*/members/*").hasAnyRole("SUPERVISOR", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/admin/teams/*/members/*").hasAnyRole("SUPERVISOR", "ADMIN")
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        // Attachments (upload/download checked in service layer)
+                        .requestMatchers("/api/v1/attachments/**").authenticated()
                         // All other endpoints require authentication
                         .anyRequest().authenticated()
                 )

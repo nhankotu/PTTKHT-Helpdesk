@@ -15,4 +15,7 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     Optional<AppUser> findWithRolesById(Long id);
 
     boolean existsByEmailIgnoreCase(String email);
+
+    @EntityGraph(attributePaths = "roles")
+    java.util.List<AppUser> findAllByOrderByIdAsc();
 }

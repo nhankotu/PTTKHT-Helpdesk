@@ -96,4 +96,20 @@ public class SupportTeam {
     public void addMember(AppUser user) {
         this.members.add(user);
     }
+
+    public void removeMember(AppUser user) {
+        this.members.remove(user);
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setSupervisor(AppUser supervisor) {
+        this.supervisor = supervisor;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
 }

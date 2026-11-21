@@ -10,4 +10,9 @@ public interface ChannelAccountRepository extends JpaRepository<ChannelAccount, 
 
     @EntityGraph(attributePaths = "channel")
     Optional<ChannelAccount> findByAccountCode(String accountCode);
+
+    @EntityGraph(attributePaths = "channel")
+    java.util.List<ChannelAccount> findAllByOrderByIdAsc();
+
+    boolean existsByAccountCode(String accountCode);
 }

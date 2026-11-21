@@ -46,6 +46,14 @@ public class ChannelAccount {
     protected ChannelAccount() {
     }
 
+    public ChannelAccount(Channel channel, String accountCode, String displayName, String configMetadata) {
+        this.channel = channel;
+        this.accountCode = accountCode;
+        this.displayName = displayName;
+        this.configMetadata = configMetadata;
+        this.active = true;
+    }
+
     @PrePersist
     void onCreate() {
         if (this.createdAt == null) {
@@ -79,5 +87,17 @@ public class ChannelAccount {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public void setConfigMetadata(String configMetadata) {
+        this.configMetadata = configMetadata;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }
