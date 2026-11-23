@@ -69,7 +69,7 @@ class GeminiAiAdaptersTest {
     @DisplayName("UC07 GeminiRagGenerator: Parse JSON gợi ý RAG kèm citedChunkIds hợp lệ")
     void ragGeneratorParsesGroundedAnswerWithCitations() throws Exception {
         when(geminiClient.getModelName()).thenReturn("gemini-2.5-flash");
-        when(geminiClient.generateJson(anyString(), anyString())).thenReturn(objectMapper.readTree("""
+        when(geminiClient.generateJson(anyString(), anyString(), org.mockito.ArgumentMatchers.anyMap())).thenReturn(objectMapper.readTree("""
                 {
                   "canAnswer": true,
                   "answerText": "Giao dịch chuyển khoản sẽ tự động kích hoạt sau 5-15 phút.",
@@ -98,7 +98,7 @@ class GeminiAiAdaptersTest {
     @DisplayName("GeminiClient.extractJsonPayload: Tự động gỡ markdown code fence ```json ... ```")
     void geminiClientStripsMarkdownFences() {
         GeminiClient realClient = new GeminiClient(
-                new AiProperties("gemini", "dummy", "gemini-2.5-flash", null, 5000),
+                new AiProperties("gemini", "dummy", "gemini-2.5-flash", "gemini-embedding-001", 768, null, 5000),
                 objectMapper
         );
         String raw = """

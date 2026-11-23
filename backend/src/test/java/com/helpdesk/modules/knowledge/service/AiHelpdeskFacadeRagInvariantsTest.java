@@ -1,5 +1,6 @@
 package com.helpdesk.modules.knowledge.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.helpdesk.modules.knowledge.dto.KnowledgeDtos.AiRunDto;
 import com.helpdesk.modules.knowledge.dto.KnowledgeDtos.RagSuggestionRequest;
 import com.helpdesk.modules.knowledge.entity.AiCitation;
@@ -11,6 +12,8 @@ import com.helpdesk.modules.knowledge.entity.KbArticle;
 import com.helpdesk.modules.knowledge.entity.KbChunk;
 import com.helpdesk.modules.knowledge.entity.KbVersion;
 import com.helpdesk.modules.knowledge.rag.GroundedRagGenerator;
+import com.helpdesk.modules.knowledge.rag.HybridKnowledgeRetriever;
+import com.helpdesk.modules.knowledge.rag.NoOpEmbeddingClient;
 import com.helpdesk.modules.knowledge.rag.RagGenerator;
 import com.helpdesk.modules.knowledge.rag.RagGenerator.RagDraftResult;
 import com.helpdesk.modules.knowledge.repository.AiCitationRepository;
@@ -66,10 +69,12 @@ class AiHelpdeskFacadeRagInvariantsTest {
     private RagGenerator customRagGenerator;
 
     private AiHelpdeskFacade facade;
+    private HybridKnowledgeRetriever retriever;
 
     @BeforeEach
     void setUp() {
         Clock fixedClock = Clock.fixed(FIXED_NOW, ZoneOffset.UTC);
+        retriever = new HybridKnowledgeRetriever(new NoOpEmbeddingClient(), new ObjectMapper());
         facade = new AiHelpdeskFacade(
                 ticketPublicContextPort,
                 kbChunkRepository,
@@ -78,6 +83,7 @@ class AiHelpdeskFacadeRagInvariantsTest {
                 aiRunRepository,
                 aiCitationRepository,
                 feedbackRepository,
+                retriever,
                 new GroundedRagGenerator(),
                 fixedClock
         );
@@ -137,7 +143,7 @@ class AiHelpdeskFacadeRagInvariantsTest {
         Clock fixedClock = Clock.fixed(FIXED_NOW, ZoneOffset.UTC);
         AiHelpdeskFacade facadeWithMockGen = new AiHelpdeskFacade(
                 ticketPublicContextPort, kbChunkRepository, kbVersionRepository, kbArticleRepository,
-                aiRunRepository, aiCitationRepository, feedbackRepository, customRagGenerator, fixedClock
+                aiRunRepository, aiCitationRepository, feedbackRepository, retriever, customRagGenerator, fixedClock
         );
 
         KbChunk validChunk = new KbChunk(70L, 0, "Thanh toán",

@@ -1,5 +1,6 @@
 package com.helpdesk.modules.knowledge.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.helpdesk.modules.identity.service.IdentityDirectoryService;
 import com.helpdesk.modules.knowledge.dto.KnowledgeDtos.AiRunDto;
 import com.helpdesk.modules.knowledge.dto.KnowledgeDtos.KbRevokeResponse;
@@ -11,6 +12,9 @@ import com.helpdesk.modules.knowledge.entity.KbArticle;
 import com.helpdesk.modules.knowledge.entity.KbVersion;
 import com.helpdesk.modules.knowledge.entity.KbVersionStatus;
 import com.helpdesk.modules.knowledge.rag.GroundedRagGenerator;
+import com.helpdesk.modules.knowledge.rag.HybridKnowledgeRetriever;
+import com.helpdesk.modules.knowledge.rag.MarkdownChunker;
+import com.helpdesk.modules.knowledge.rag.NoOpEmbeddingClient;
 import com.helpdesk.modules.knowledge.repository.AiCitationRepository;
 import com.helpdesk.modules.knowledge.repository.AiRunRepository;
 import com.helpdesk.modules.knowledge.repository.AiSuggestionFeedbackRepository;
@@ -67,12 +71,16 @@ class KnowledgeBaseRevocationTest {
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(FIXED_NOW, ZoneOffset.UTC);
+        ObjectMapper objectMapper = new ObjectMapper();
+        NoOpEmbeddingClient noOpEmbedding = new NoOpEmbeddingClient();
         knowledgeBaseService = new KnowledgeBaseService(
-                kbArticleRepository, kbVersionRepository, kbChunkRepository, identityDirectoryService, clock
+                kbArticleRepository, kbVersionRepository, kbChunkRepository, identityDirectoryService,
+                new MarkdownChunker(), noOpEmbedding, objectMapper, clock
         );
         aiHelpdeskFacade = new AiHelpdeskFacade(
                 ticketPublicContextPort, kbChunkRepository, kbVersionRepository, kbArticleRepository,
-                aiRunRepository, aiCitationRepository, feedbackRepository, new GroundedRagGenerator(), clock
+                aiRunRepository, aiCitationRepository, feedbackRepository,
+                new HybridKnowledgeRetriever(noOpEmbedding, objectMapper), new GroundedRagGenerator(), clock
         );
     }
 

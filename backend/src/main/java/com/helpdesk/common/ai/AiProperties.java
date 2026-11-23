@@ -7,6 +7,8 @@ public record AiProperties(
         String provider,
         String geminiApiKey,
         String geminiModel,
+        String geminiEmbeddingModel,
+        Integer geminiEmbeddingDims,
         String geminiBaseUrl,
         Integer timeoutMs
 ) {
@@ -16,6 +18,16 @@ public record AiProperties(
 
     public String resolvedGeminiModel() {
         return (geminiModel == null || geminiModel.isBlank()) ? "gemini-2.5-flash" : geminiModel.trim();
+    }
+
+    public String resolvedGeminiEmbeddingModel() {
+        return (geminiEmbeddingModel == null || geminiEmbeddingModel.isBlank())
+                ? "gemini-embedding-001"
+                : geminiEmbeddingModel.trim();
+    }
+
+    public int resolvedGeminiEmbeddingDims() {
+        return (geminiEmbeddingDims == null || geminiEmbeddingDims < 64) ? 768 : geminiEmbeddingDims;
     }
 
     public String resolvedGeminiBaseUrl() {

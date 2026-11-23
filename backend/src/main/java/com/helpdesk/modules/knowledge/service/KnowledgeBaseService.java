@@ -1,5 +1,6 @@
 package com.helpdesk.modules.knowledge.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.helpdesk.common.dto.PageResponse;
 import com.helpdesk.common.exception.BusinessException;
 import com.helpdesk.common.exception.ErrorCode;
@@ -16,6 +17,9 @@ import com.helpdesk.modules.knowledge.entity.KbArticle;
 import com.helpdesk.modules.knowledge.entity.KbChunk;
 import com.helpdesk.modules.knowledge.entity.KbVersion;
 import com.helpdesk.modules.knowledge.entity.KbVersionStatus;
+import com.helpdesk.modules.knowledge.rag.EmbeddingClient;
+import com.helpdesk.modules.knowledge.rag.MarkdownChunker;
+import com.helpdesk.modules.knowledge.rag.MarkdownChunker.ChunkPiece;
 import com.helpdesk.modules.knowledge.repository.KbArticleRepository;
 import com.helpdesk.modules.knowledge.repository.KbChunkRepository;
 import com.helpdesk.modules.knowledge.repository.KbVersionRepository;
@@ -36,6 +40,9 @@ public class KnowledgeBaseService {
     private final KbVersionRepository kbVersionRepository;
     private final KbChunkRepository kbChunkRepository;
     private final IdentityDirectoryService identityDirectoryService;
+    private final MarkdownChunker markdownChunker;
+    private final EmbeddingClient embeddingClient;
+    private final ObjectMapper objectMapper;
     private final Clock clock;
 
     public KnowledgeBaseService(
@@ -43,12 +50,18 @@ public class KnowledgeBaseService {
             KbVersionRepository kbVersionRepository,
             KbChunkRepository kbChunkRepository,
             IdentityDirectoryService identityDirectoryService,
+            MarkdownChunker markdownChunker,
+            EmbeddingClient embeddingClient,
+            ObjectMapper objectMapper,
             Clock clock
     ) {
         this.kbArticleRepository = kbArticleRepository;
         this.kbVersionRepository = kbVersionRepository;
         this.kbChunkRepository = kbChunkRepository;
         this.identityDirectoryService = identityDirectoryService;
+        this.markdownChunker = markdownChunker;
+        this.embeddingClient = embeddingClient;
+        this.objectMapper = objectMapper;
         this.clock = clock;
     }
 
@@ -233,24 +246,23 @@ public class KnowledgeBaseService {
     }
 
     private void buildAndSaveChunks(KbVersion version, Instant now) {
-        String[] blocks = version.getContent().split("\\r?\\n\\s*\\r?\\n");
+        List<ChunkPiece> pieces = markdownChunker.chunk(version.getTitle(), version.getContent());
         List<KbChunk> chunks = new ArrayList<>();
         int index = 0;
-        for (String block : blocks) {
-            String trimmed = block.trim();
-            if (trimmed.isEmpty()) {
-                continue;
-            }
-            String heading = version.getTitle();
-            if (trimmed.startsWith("#")) {
-                int breakIdx = trimmed.indexOf('\n');
-                heading = (breakIdx > 0 ? trimmed.substring(0, breakIdx) : trimmed).replaceAll("^#+\\s*", "").trim();
-            }
-            int tokenEstimate = Math.max(1, trimmed.split("\\s+").length);
-            chunks.add(new KbChunk(version.getId(), index++, heading, trimmed, tokenEstimate, now));
-        }
-        if (chunks.isEmpty()) {
-            chunks.add(new KbChunk(version.getId(), 0, version.getTitle(), version.getContent(), 1, now));
+        for (ChunkPiece piece : pieces) {
+            KbChunk chunk = new KbChunk(
+                    version.getId(), index++, piece.heading(), piece.content(), piece.tokenEstimate(), now
+            );
+            String embedText = markdownChunker.buildEmbeddingText(version.getTitle(), piece.heading(), piece.content());
+            embeddingClient.embedDocument(version.getTitle(), embedText).ifPresent(vec -> {
+                try {
+                    chunk.setEmbeddingRef(embeddingClient.embeddingRef());
+                    chunk.setEmbeddingVector(objectMapper.writeValueAsString(vec));
+                } catch (Exception ignored) {
+                    // Nếu serialize vector lỗi -> bỏ qua, retriever sẽ dùng lexical fallback
+                }
+            });
+            chunks.add(chunk);
         }
         kbChunkRepository.saveAll(chunks);
     }

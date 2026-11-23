@@ -16,6 +16,7 @@ import com.helpdesk.modules.knowledge.entity.AiTaskType;
 import com.helpdesk.modules.knowledge.entity.KbArticle;
 import com.helpdesk.modules.knowledge.entity.KbChunk;
 import com.helpdesk.modules.knowledge.entity.KbVersion;
+import com.helpdesk.modules.knowledge.rag.HybridKnowledgeRetriever;
 import com.helpdesk.modules.knowledge.rag.RagGenerator;
 import com.helpdesk.modules.knowledge.rag.RagGenerator.RagDraftResult;
 import com.helpdesk.modules.knowledge.rag.RagGenerator.ScoredChunk;
@@ -65,6 +66,7 @@ public class AiHelpdeskFacade {
     private final AiRunRepository aiRunRepository;
     private final AiCitationRepository aiCitationRepository;
     private final AiSuggestionFeedbackRepository feedbackRepository;
+    private final HybridKnowledgeRetriever knowledgeRetriever;
     private final RagGenerator ragGenerator;
     private final Clock clock;
 
@@ -76,6 +78,7 @@ public class AiHelpdeskFacade {
             AiRunRepository aiRunRepository,
             AiCitationRepository aiCitationRepository,
             AiSuggestionFeedbackRepository feedbackRepository,
+            HybridKnowledgeRetriever knowledgeRetriever,
             RagGenerator ragGenerator,
             Clock clock
     ) {
@@ -86,6 +89,7 @@ public class AiHelpdeskFacade {
         this.aiRunRepository = aiRunRepository;
         this.aiCitationRepository = aiCitationRepository;
         this.feedbackRepository = feedbackRepository;
+        this.knowledgeRetriever = knowledgeRetriever;
         this.ragGenerator = ragGenerator;
         this.clock = clock;
     }
@@ -193,30 +197,8 @@ public class AiHelpdeskFacade {
     }
 
     private List<ScoredChunk> retrieveActivePublishedChunks(String query, int topK) {
-        Set<String> queryTerms = tokenize(query);
-        if (queryTerms.isEmpty()) {
-            return List.of();
-        }
-        return kbChunkRepository.findAllActivePublishedChunks().stream()
-                .map(chunk -> {
-                    Set<String> chunkTerms = tokenize((chunk.getHeading() != null ? chunk.getHeading() + " " : "") + chunk.getContent());
-                    long hits = queryTerms.stream().filter(chunkTerms::contains).count();
-                    double score = (double) hits / (double) queryTerms.size();
-                    return new ScoredChunk(chunk, BigDecimal.valueOf(Math.min(1.0, score)).setScale(4, RoundingMode.HALF_UP));
-                })
-                .filter(sc -> sc.relevanceScore().doubleValue() >= MIN_RELEVANCE)
-                .sorted(Comparator.comparing(ScoredChunk::relevanceScore).reversed())
-                .limit(topK)
-                .toList();
-    }
-
-    private Set<String> tokenize(String text) {
-        if (text == null || text.isBlank()) {
-            return Set.of();
-        }
-        return Arrays.stream(text.toLowerCase(Locale.ROOT).split("[^\\p{L}\\p{N}]+"))
-                .filter(w -> w.length() >= 2)
-                .collect(Collectors.toSet());
+        List<KbChunk> activePublished = kbChunkRepository.findAllActivePublishedChunks();
+        return knowledgeRetriever.retrieve(query, activePublished, topK);
     }
 
     private boolean isPromptInjection(String query) {

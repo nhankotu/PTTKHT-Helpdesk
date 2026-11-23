@@ -7,6 +7,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
@@ -35,6 +37,10 @@ public class KbChunk {
 
     @Column(name = "embedding_ref", length = 255)
     private String embeddingRef;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "embedding_vector", columnDefinition = "json")
+    private String embeddingVector;
 
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
@@ -69,6 +75,9 @@ public class KbChunk {
     public String getContent() { return content; }
     public int getTokenCount() { return tokenCount; }
     public String getEmbeddingRef() { return embeddingRef; }
+    public void setEmbeddingRef(String embeddingRef) { this.embeddingRef = embeddingRef; }
+    public String getEmbeddingVector() { return embeddingVector; }
+    public void setEmbeddingVector(String embeddingVector) { this.embeddingVector = embeddingVector; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
     public Instant getIndexedAt() { return indexedAt; }
