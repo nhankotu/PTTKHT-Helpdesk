@@ -1,0 +1,93 @@
+{
+  "business": "CellphoneS",
+  "documents": [
+    {
+      "document_id": "CPS-DOI-TRA",
+      "slug": "huong-dan-huy-giao-dich-doi-tra",
+      "title": "CellphoneS — Hủy giao dịch, đổi trả và khiếu nại",
+      "selector": ".cps-block-content",
+      "excluded_sections": [
+        "2.4. Điều kiện hủy giao dịch:"
+      ],
+      "business": "CellphoneS",
+      "source_url": "https://cellphones.com.vn/huong-dan-huy-giao-dich-doi-tra",
+      "retrieved_at": "2026-11-24T05:04:38.211186+00:00",
+      "effective_date": null,
+      "effective_date_note": "No global effective date established. Scoped dates are listed separately; collection date is not effective date.",
+      "section_effective_dates": [],
+      "raw_file": "raw/CPS-DOI-TRA/20261124T050438Z.html",
+      "raw_sha256": "e445a5a2bf03bdfafda6577570a5b1a45fc7a0480ba96c48e8be93db5e142a6d",
+      "markdown_file": "kb/CPS-DOI-TRA.md",
+      "markdown_sha256": "3febb330945163f66c8353d9be494b0c56c0df38c67cb832054ea89705d5550b",
+      "article_content_sha256": "94029f79988918ea707732df890fbfcf51d488a8dfd01dd4ba65e378e41d5a30",
+      "http": {
+        "final_url": "https://cellphones.com.vn/huong-dan-huy-giao-dich-doi-tra",
+        "content_type": "text/html; charset=utf-8",
+        "last_modified": null,
+        "etag": "W/\"9c7e7-b8DEuxdZupO0XH/I0hrazhhAnaQ\""
+      },
+      "table_count": 1,
+      "section_chunk_count": 7,
+      "images": [],
+      "review_status": "reviewed"
+    },
+    {
+      "document_id": "CPS-GIAO-HANG",
+      "slug": "chinh-sach-giao-hang",
+      "title": "CellphoneS — Thanh toán và giao hàng",
+      "selector": "#chinh-sach-giao-hang",
+      "excluded_sections": [
+        "4. THÔNG TIN VỀ HUỶ ĐƠN HÀNG VÀ THỜI GIAN HOÀN TIỀN:"
+      ],
+      "business": "CellphoneS",
+      "source_url": "https://cellphones.com.vn/chinh-sach-giao-hang",
+      "retrieved_at": "2026-11-24T05:04:38.211186+00:00",
+      "effective_date": null,
+      "effective_date_note": "No global effective date established. Scoped dates are listed separately; collection date is not effective date.",
+      "section_effective_dates": [
+        {
+          "date": "2022-12-12",
+          "section_path": [
+            "HƯỚNG DẪN MUA HÀNG TỪ XA",
+            "4. THÔNG TIN VỀ HUỶ ĐƠN HÀNG VÀ THỜI GIAN HOÀN TIỀN:"
+          ],
+          "source_text": "* Hiệu lực áp dụng: Kể từ ngày 12/12/2022 đến khi có thông báo thay thế mới."
+        }
+      ],
+      "raw_file": "raw/CPS-GIAO-HANG/20261124T050438Z.html",
+      "raw_sha256": "10170d83c099ffae53d3313d4a0d1883715a55de08ed21e95d89f1ac05479fc7",
+      "markdown_file": "kb/CPS-GIAO-HANG.md",
+      "markdown_sha256": "800643f0cb3bafb03d251a9e7e8db4226f688ac0351e1eaef158c5902e8d6cc0",
+      "article_content_sha256": "8741bcec90522006578b1ce5b875f22d26aea31f7a2aea8093a95a212496a9dd",
+      "http": {
+        "final_url": "https://cellphones.com.vn/chinh-sach-giao-hang",
+        "content_type": "text/html; charset=utf-8",
+        "last_modified": null,
+        "etag": "W/\"a7927-9TUQJcFueczqaCYHA8J4V8iRJaU\""
+      },
+      "table_count": 2,
+      "section_chunk_count": 11,
+      "images": [
+        {
+          "image_id": "image-1",
+          "url": "https://lh7-rt.googleusercontent.com/docsz/AD_4nXej1bnK8TBPLamfEbqmL9k9YQg8mud-t99FreXQ9BbTGRSHnohKLkOWwZ5FrvgP2gTajXzrnhE8_SYpmir2CebBa-kzhBD81cPnlubfKLdQZu8KhBmEfqiAspgNmMKaPu9qURem8A?key=eANK9zoevLcyvLUmHuV0bErY",
+          "alt": "",
+          "review_status": "reviewed_illustration_excluded",
+          "file": "raw/CPS-GIAO-HANG/20261124T050438Z-image-1.png",
+          "sha256": "0ed8b9dc06c604fe12339fcff2bf9177ba0869acd258503ae176758176297812",
+          "review_note": "Manually inspected payment UI illustration; no image text, QR, account number, promotion or example transaction identifier imported into KB."
+        },
+        {
+          "image_id": "image-2",
+          "url": "https://lh7-rt.googleusercontent.com/docsz/AD_4nXfusrBoQNSb_RMU_uWjXo0UOBFW8oXx3OVc05JMm8_qDyvl_4MZEMP0ZM4dUKJe55gRQXDql2nAjDScMoC0IRY7Q5hsZF5gPDGRTnPj68zh8vV46TCU91whs_EgVIaLDgEjdoRlNw?key=eANK9zoevLcyvLUmHuV0bErY",
+          "alt": "",
+          "review_status": "reviewed_illustration_excluded",
+          "file": "raw/CPS-GIAO-HANG/20261124T050438Z-image-2.png",
+          "sha256": "77d359115972043d7f9f7c48af0ca22dc3c3e500473b2734d2c4d64e0479e3c1",
+          "review_note": "Manually inspected payment UI illustration; no image text, QR, account number, promotion or example transaction identifier imported into KB."
+        }
+      ],
+      "review_status": "reviewed"
+    }
+  ]
+}

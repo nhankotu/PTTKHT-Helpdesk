@@ -1,0 +1,46 @@
+{
+  "reviewed_at": "2026-11-24T08:39:41.217666+00:00",
+  "method": "Source HTML text coverage + merged table inspection + manual Markdown and payment-image review",
+  "documents": {
+    "CPS-DOI-TRA": {
+      "status": "reviewed",
+      "raw_sha256": "e445a5a2bf03bdfafda6577570a5b1a45fc7a0480ba96c48e8be93db5e142a6d",
+      "content_sha256": "94029f79988918ea707732df890fbfcf51d488a8dfd01dd4ba65e378e41d5a30",
+      "payload_sha256": "6dfa6e37e3d8068d94741dd5de22dd5b5baf110a9e4cb406720e39462765cb1b",
+      "markdown_sha256": "3febb330945163f66c8353d9be494b0c56c0df38c67cb832054ea89705d5550b",
+      "checked_text_fragments": 125,
+      "missing_text_fragments": 0,
+      "tables": 1,
+      "image_handling": "Raw illustrations retained; excluded from import",
+      "excluded_sections": [
+        "2.4. Điều kiện hủy giao dịch:"
+      ],
+      "exclusion_reason": "Refund timings differ across paragraphs/pages; do not choose a deadline without authoritative clarification. Dates in one section do not establish the whole page effective date.",
+      "notes": [
+        "Merged headers and rowspans retained; table footnotes and conditions stay with the section in imported chunks.",
+        "Only explicit policy body included. External linked policies were not collected and must not be inferred.",
+        "Full clean Markdown is source reference; articles.jsonl is the reviewed subset for RAG."
+      ]
+    },
+    "CPS-GIAO-HANG": {
+      "status": "reviewed",
+      "raw_sha256": "10170d83c099ffae53d3313d4a0d1883715a55de08ed21e95d89f1ac05479fc7",
+      "content_sha256": "8741bcec90522006578b1ce5b875f22d26aea31f7a2aea8093a95a212496a9dd",
+      "payload_sha256": "5c90efd5411930abf472da0b1876043627cfd44f8233fcc33ad8e049556e5305",
+      "markdown_sha256": "800643f0cb3bafb03d251a9e7e8db4226f688ac0351e1eaef158c5902e8d6cc0",
+      "checked_text_fragments": 121,
+      "missing_text_fragments": 0,
+      "tables": 2,
+      "image_handling": "Raw illustrations retained; excluded from import",
+      "excluded_sections": [
+        "4. THÔNG TIN VỀ HUỶ ĐƠN HÀNG VÀ THỜI GIAN HOÀN TIỀN:"
+      ],
+      "exclusion_reason": "Refund timings differ across paragraphs/pages; do not choose a deadline without authoritative clarification. Dates in one section do not establish the whole page effective date.",
+      "notes": [
+        "Merged headers and rowspans retained; table footnotes and conditions stay with the section in imported chunks.",
+        "Only explicit policy body included. External linked policies were not collected and must not be inferred.",
+        "Full clean Markdown is source reference; articles.jsonl is the reviewed subset for RAG."
+      ]
+    }
+  }
+}

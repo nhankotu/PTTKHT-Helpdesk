@@ -12,6 +12,13 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 node_modules/
+target/
+backend/target/
+uploads/
+backend/uploads/
+data/cellphones/local-import.json
+.idea/
+*.iml
 .work/
 /helpdesk/data/
 .DS_Store

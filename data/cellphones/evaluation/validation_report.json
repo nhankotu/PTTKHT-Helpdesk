@@ -1,0 +1,42 @@
+{
+  "validated_at": "2026-11-24T09:07:56.239609+00:00",
+  "dataset_sha256": "567d9172a3d97e0ca74c0dfb800caa8424da2b543aaf92890a50a2361469b351",
+  "cases": 50,
+  "actions": {
+    "ANSWER": 30,
+    "ASK_CLARIFICATION": 10,
+    "FALLBACK": 10
+  },
+  "surface_forms": {
+    "standard": 40,
+    "no_diacritics": 4,
+    "typo": 1,
+    "paraphrase": 2,
+    "multi_step": 3
+  },
+  "covered_chunks": 18,
+  "approved_chunks": 18,
+  "evidence_chunk_keys": [
+    "CPS-DOI-TRA#0",
+    "CPS-DOI-TRA#1",
+    "CPS-DOI-TRA#2",
+    "CPS-DOI-TRA#3",
+    "CPS-DOI-TRA#4",
+    "CPS-DOI-TRA#5",
+    "CPS-DOI-TRA#6",
+    "CPS-GIAO-HANG#0",
+    "CPS-GIAO-HANG#1",
+    "CPS-GIAO-HANG#10",
+    "CPS-GIAO-HANG#2",
+    "CPS-GIAO-HANG#3",
+    "CPS-GIAO-HANG#4",
+    "CPS-GIAO-HANG#5",
+    "CPS-GIAO-HANG#6",
+    "CPS-GIAO-HANG#7",
+    "CPS-GIAO-HANG#8",
+    "CPS-GIAO-HANG#9"
+  ],
+  "errors": [],
+  "passed": true,
+  "meaning": "Data structure, source integrity and citation locations only. Not an executed RAG quality evaluation."
+}

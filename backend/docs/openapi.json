@@ -1,0 +1,4918 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "title" : "Omnichannel AI Helpdesk Platform API",
+    "description" : "REST API Contract (UC00-UC08) với JWT RBAC, Optimistic Locking, Idempotency-Key và chuẩn lỗi RFC 7807 (ProblemDetail).",
+    "version" : "1.0.0"
+  },
+  "servers" : [ {
+    "url" : "http://localhost:8080",
+    "description" : "Local development"
+  } ],
+  "security" : [ {
+    "bearerAuth" : [ ]
+  } ],
+  "tags" : [ {
+    "name" : "6B. AI RAG Suggestions (UC07)",
+    "description" : "Sinh gợi ý trả lời AI có dẫn nguồn (ai_citation), fallback an toàn và ghi nhận phản hồi Agent"
+  }, {
+    "name" : "6A. Knowledge Base (UC06)",
+    "description" : "Quản lý bài viết KB, quy trình duyệt phiên bản, xuất bản, thu hồi và tra cứu công khai"
+  }, {
+    "name" : "4. AI Classification & Routing (UC04)",
+    "description" : "Luật định tuyến, hàng đợi Fallback Supervisor, phân công thủ công & phân loại AI"
+  }, {
+    "name" : "5. SLA & Escalations (UC05)",
+    "description" : "Chính sách SLA, tiến độ 2 mốc theo ticket, cảnh báo và xử lý chuyển cấp"
+  }, {
+    "name" : "3A. Customer Ticket Portal (UC03)",
+    "description" : "Cổng khách hàng — chỉ trả tin nhắn PUBLIC, kiểm tra quyền sở hữu nghiêm ngặt"
+  }, {
+    "name" : "1. Identity & Auth (UC00)",
+    "description" : "Đăng nhập JWT, đăng ký khách hàng, hồ sơ và trạng thái sẵn sàng"
+  }, {
+    "name" : "6C. Reporting & KPI Dashboard (UC08)",
+    "description" : "Báo cáo hợp nhất Ticket, SLA (v_ticket_sla_summary) và CSAT theo phạm vi nhóm"
+  }, {
+    "name" : "2B. Attachments (UC01-UC03)",
+    "description" : "Upload và tải tệp đính kèm (<= 25MB, cách ly tuyệt đối file thuộc ghi chú INTERNAL)"
+  }, {
+    "name" : "2. Omnichannel Intake & Webhooks (UC01-UC02)",
+    "description" : "Tiếp nhận Web Form (Idempotency-Key) và Webhook đa kênh"
+  }, {
+    "name" : "1. Identity & Reference Data (UC00)",
+    "description" : "Danh mục dùng chung: Category và Support Team"
+  }, {
+    "name" : "1B. Platform Admin CRUD (UC00 / FR01)",
+    "description" : "Quản trị tài khoản nhân viên, nhóm hỗ trợ, danh mục và kênh tiếp nhận"
+  }, {
+    "name" : "3B. Staff Ticket Workspace (UC03)",
+    "description" : "Không gian xử lý ticket cho Agent/Supervisor/Admin — Optimistic Locking & State Machine Guard"
+  }, {
+    "name" : "5. Notifications (UC04-UC05)",
+    "description" : "Thông báo phân công và cảnh báo/vi phạm SLA cho nhân viên"
+  } ],
+  "paths" : {
+    "/api/v1/kb/versions/{versionId}" : {
+      "put" : {
+        "tags" : [ "6A. Knowledge Base (UC06)" ],
+        "summary" : "Cập nhật nội dung phiên bản KB khi đang ở trạng thái DRAFT hoặc REJECTED",
+        "operationId" : "updateDraftVersion",
+        "parameters" : [ {
+          "name" : "versionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/KbVersionCreateOrUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbVersionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/teams/{teamId}/members/{userId}" : {
+      "put" : {
+        "tags" : [ "1B. Platform Admin CRUD (UC00 / FR01)" ],
+        "summary" : "Thêm thành viên (Agent) vào nhóm hỗ trợ",
+        "operationId" : "addTeamMember",
+        "parameters" : [ {
+          "name" : "teamId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "userId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TeamDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "1B. Platform Admin CRUD (UC00 / FR01)" ],
+        "summary" : "Xóa thành viên khỏi nhóm hỗ trợ",
+        "operationId" : "removeTeamMember",
+        "parameters" : [ {
+          "name" : "teamId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "userId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TeamDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/{channelCode}" : {
+      "post" : {
+        "tags" : [ "2. Omnichannel Intake & Webhooks (UC01-UC02)" ],
+        "summary" : "UC02: Nhận sự kiện webhook từ kênh ngoài (EMAIL, LIVE_CHAT, FACEBOOK, ZALO)",
+        "operationId" : "receiveWebhook",
+        "parameters" : [ {
+          "name" : "channelCode",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "WEB_FORM", "EMAIL", "LIVE_CHAT", "FACEBOOK", "ZALO" ]
+          }
+        }, {
+          "name" : "X-Webhook-Signature",
+          "in" : "header",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WebhookInboundRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebhookInboundResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tickets/{ticketId}/transfer" : {
+      "post" : {
+        "tags" : [ "3B. Staff Ticket Workspace (UC03)" ],
+        "summary" : "Chuyển giao ticket sang nhóm/Agent khác (bắt buộc version & thuộc team_member)",
+        "operationId" : "transfer",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TransferTicketRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StaffTicketDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tickets/{ticketId}/messages" : {
+      "get" : {
+        "tags" : [ "3B. Staff Ticket Workspace (UC03)" ],
+        "summary" : "Lịch sử hội thoại đầy đủ (PUBLIC & INTERNAL)",
+        "operationId" : "listMessages",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "visibility",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "PUBLIC", "INTERNAL" ]
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StaffMessageDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "3B. Staff Ticket Workspace (UC03)" ],
+        "summary" : "Gửi phản hồi PUBLIC hoặc thêm ghi chú nội bộ INTERNAL (hỗ trợ đổi trạng thái nguyên tử)",
+        "operationId" : "postMessage",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StaffMessageCreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StaffMessageCreateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tickets/{ticketId}/messages/{messageId}/retry" : {
+      "post" : {
+        "tags" : [ "3B. Staff Ticket Workspace (UC03)" ],
+        "summary" : "Thử gửi lại tin nhắn PUBLIC có trạng thái FAILED (UC03-E1)",
+        "operationId" : "retryFailedMessage",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "messageId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StaffMessageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tickets/{ticketId}/ai/suggestions" : {
+      "get" : {
+        "tags" : [ "6B. AI RAG Suggestions (UC07)" ],
+        "summary" : "Danh sách các lần chạy AI RAG kèm trích dẫn và phản hồi của ticket",
+        "operationId" : "listSuggestions",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AiRunDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "6B. AI RAG Suggestions (UC07)" ],
+        "summary" : "Chạy AI RAG sinh gợi ý nháp có dẫn nguồn cho ticket (chỉ đọc tin PUBLIC & KB PUBLISHED)",
+        "operationId" : "generateSuggestion",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RagSuggestionRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AiRunDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sla/events/{slaEventId}/escalations" : {
+      "post" : {
+        "tags" : [ "5. SLA & Escalations (UC05)" ],
+        "summary" : "Ghi nhận hành động xử lý chuyển cấp cho một sự kiện SLA",
+        "operationId" : "recordEscalation",
+        "parameters" : [ {
+          "name" : "slaEventId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EscalationActionCreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EscalationActionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/routing/tickets/{ticketId}/reclassify" : {
+      "post" : {
+        "tags" : [ "4. AI Classification & Routing (UC04)" ],
+        "summary" : "Chạy lại AI phân loại & định tuyến tự động cho ticket",
+        "operationId" : "reclassify",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClassificationResultDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/routing/tickets/{ticketId}/assign" : {
+      "post" : {
+        "tags" : [ "4. AI Classification & Routing (UC04)" ],
+        "summary" : "Supervisor phân công thủ công (NEW -> ASSIGNED, bắt buộc version)",
+        "operationId" : "assignManually",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ManualAssignRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AssignmentResultDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/read-all" : {
+      "post" : {
+        "tags" : [ "5. Notifications (UC04-UC05)" ],
+        "summary" : "Đánh dấu tất cả thông báo đã đọc",
+        "operationId" : "markAllRead",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "integer",
+                    "format" : "int32"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/versions/{versionId}/submit" : {
+      "post" : {
+        "tags" : [ "6A. Knowledge Base (UC06)" ],
+        "summary" : "Gửi duyệt phiên bản KB (DRAFT/REJECTED -> IN_REVIEW)",
+        "operationId" : "submitForReview",
+        "parameters" : [ {
+          "name" : "versionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbVersionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/versions/{versionId}/revoke" : {
+      "post" : {
+        "tags" : [ "6A. Knowledge Base (UC06)" ],
+        "summary" : "Thu hồi phiên bản KB (PUBLISHED -> ARCHIVED), vô hiệu hóa toàn bộ kb_chunk ngay lập tức",
+        "operationId" : "revokeVersion",
+        "parameters" : [ {
+          "name" : "versionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/KbRevokeRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbRevokeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/versions/{versionId}/reject" : {
+      "post" : {
+        "tags" : [ "6A. Knowledge Base (UC06)" ],
+        "summary" : "Từ chối duyệt phiên bản KB (IN_REVIEW -> REJECTED, bắt buộc reviewNote)",
+        "operationId" : "rejectVersion",
+        "parameters" : [ {
+          "name" : "versionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/KbRejectRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbVersionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/versions/{versionId}/publish" : {
+      "post" : {
+        "tags" : [ "6A. Knowledge Base (UC06)" ],
+        "summary" : "Phê duyệt và xuất bản phiên bản KB (IN_REVIEW -> PUBLISHED), tự archive bản cũ và sinh kb_chunk",
+        "operationId" : "publishVersion",
+        "parameters" : [ {
+          "name" : "versionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbVersionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/articles" : {
+      "get" : {
+        "tags" : [ "6A. Knowledge Base (UC06)" ],
+        "summary" : "Danh sách tất cả bài viết KB kèm lịch sử phiên bản",
+        "operationId" : "listAllArticles",
+        "parameters" : [ {
+          "name" : "pageable",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Pageable"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseKbArticleDetailDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "6A. Knowledge Base (UC06)" ],
+        "summary" : "Tạo bài viết KB mới kèm phiên bản v1 ở trạng thái DRAFT",
+        "operationId" : "createArticle",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/KbArticleCreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbArticleDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/articles/{articleId}/versions" : {
+      "post" : {
+        "tags" : [ "6A. Knowledge Base (UC06)" ],
+        "summary" : "Tạo phiên bản DRAFT mới cho bài viết KB (không ghi đè bản PUBLISHED)",
+        "operationId" : "createNewVersion",
+        "parameters" : [ {
+          "name" : "articleId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/KbVersionCreateOrUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbVersionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/intake/web-requests" : {
+      "post" : {
+        "tags" : [ "2. Omnichannel Intake & Webhooks (UC01-UC02)" ],
+        "summary" : "UC01: Gửi yêu cầu hỗ trợ qua Web Form (bắt buộc Header Idempotency-Key)",
+        "operationId" : "submitWebRequest",
+        "parameters" : [ {
+          "name" : "Idempotency-Key",
+          "in" : "header",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WebIntakeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebIntakeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer/tickets/{ticketId}/reopen" : {
+      "post" : {
+        "tags" : [ "3A. Customer Ticket Portal (UC03)" ],
+        "summary" : "Khách hàng mở lại ticket (RESOLVED -> IN_PROGRESS)",
+        "operationId" : "reopen",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CustomerReopenRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CustomerTicketDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer/tickets/{ticketId}/messages" : {
+      "get" : {
+        "tags" : [ "3A. Customer Ticket Portal (UC03)" ],
+        "summary" : "Lịch sử hội thoại PUBLIC của ticket (tuyệt đối không có ghi chú INTERNAL)",
+        "operationId" : "getMyTicketMessages",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CustomerMessageDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "3A. Customer Ticket Portal (UC03)" ],
+        "summary" : "Khách hàng gửi tin nhắn bổ sung thông tin",
+        "operationId" : "reply",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CustomerReplyRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CustomerMessageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer/tickets/{ticketId}/csat" : {
+      "post" : {
+        "tags" : [ "3A. Customer Ticket Portal (UC03)" ],
+        "summary" : "Khách hàng gửi khảo sát hài lòng CSAT (1-5 sao)",
+        "operationId" : "submitCsat",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CsatSubmitRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CsatResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer/tickets/{ticketId}/confirm-close" : {
+      "post" : {
+        "tags" : [ "3A. Customer Ticket Portal (UC03)" ],
+        "summary" : "Khách hàng xác nhận đã giải quyết (RESOLVED -> CLOSED)",
+        "operationId" : "confirmClose",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CustomerCloseRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CustomerTicketDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register" : {
+      "post" : {
+        "tags" : [ "1. Identity & Auth (UC00)" ],
+        "summary" : "Đăng ký tài khoản Khách hàng (CUSTOMER)",
+        "operationId" : "register",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh" : {
+      "post" : {
+        "tags" : [ "1. Identity & Auth (UC00)" ],
+        "summary" : "Cấp lại Access Token từ Refresh Token",
+        "operationId" : "refresh",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RefreshTokenRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout" : {
+      "post" : {
+        "tags" : [ "1. Identity & Auth (UC00)" ],
+        "summary" : "Đăng xuất phiên hiện tại",
+        "operationId" : "logout",
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login" : {
+      "post" : {
+        "tags" : [ "1. Identity & Auth (UC00)" ],
+        "summary" : "Đăng nhập bằng email và mật khẩu",
+        "operationId" : "login",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/attachments" : {
+      "post" : {
+        "tags" : [ "2B. Attachments (UC01-UC03)" ],
+        "summary" : "Upload tệp đính kèm cho một tin nhắn ticket (<= 25MB)",
+        "operationId" : "upload",
+        "parameters" : [ {
+          "name" : "messageId",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                },
+                "required" : [ "file" ]
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AttachmentDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/runs/{aiRunId}/feedback" : {
+      "post" : {
+        "tags" : [ "6B. AI RAG Suggestions (UC07)" ],
+        "summary" : "Ghi nhận quyết định đánh giá của Agent đối với gợi ý AI",
+        "operationId" : "submitFeedback",
+        "parameters" : [ {
+          "name" : "aiRunId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AiFeedbackCreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AiFeedbackDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users" : {
+      "get" : {
+        "tags" : [ "1B. Platform Admin CRUD (UC00 / FR01)" ],
+        "summary" : "Danh sách tài khoản (lọc theo role, teamId, isActive, isAvailable)",
+        "operationId" : "listUsers",
+        "parameters" : [ {
+          "name" : "role",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "CUSTOMER", "AGENT", "SUPERVISOR", "ADMIN" ]
+          }
+        }, {
+          "name" : "teamId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "isActive",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "isAvailable",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/UserProfileDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "1B. Platform Admin CRUD (UC00 / FR01)" ],
+        "summary" : "Tạo tài khoản nhân viên hoặc người dùng mới",
+        "operationId" : "createUser",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AdminUserCreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/teams" : {
+      "post" : {
+        "tags" : [ "1B. Platform Admin CRUD (UC00 / FR01)" ],
+        "summary" : "Tạo nhóm hỗ trợ mới",
+        "operationId" : "createTeam",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AdminTeamCreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TeamDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/sla/policies" : {
+      "post" : {
+        "tags" : [ "5. SLA & Escalations (UC05)" ],
+        "summary" : "Tạo phiên bản mới của chính sách SLA theo priority (không ảnh hưởng ticket cũ)",
+        "operationId" : "createPolicy",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SlaPolicyCreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SlaPolicyDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/routing/rules" : {
+      "post" : {
+        "tags" : [ "4. AI Classification & Routing (UC04)" ],
+        "summary" : "Tạo luật định tuyến mới (mỗi danh mục tối đa 1 luật active)",
+        "operationId" : "createRule",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RoutingRuleCreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RoutingRuleDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/channel-accounts" : {
+      "post" : {
+        "tags" : [ "1B. Platform Admin CRUD (UC00 / FR01)" ],
+        "summary" : "Cấu hình tài khoản kênh tiếp nhận mới",
+        "operationId" : "createChannelAccount",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChannelAccountCreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChannelAccountDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/categories" : {
+      "post" : {
+        "tags" : [ "1B. Platform Admin CRUD (UC00 / FR01)" ],
+        "summary" : "Tạo danh mục yêu cầu mới",
+        "operationId" : "createCategory",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AdminCategoryCreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CategoryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tickets/{ticketId}/status" : {
+      "patch" : {
+        "tags" : [ "3B. Staff Ticket Workspace (UC03)" ],
+        "summary" : "Cập nhật trạng thái ticket qua State Machine Guard (bắt buộc version)",
+        "operationId" : "updateStatus",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StatusUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StaffTicketDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tickets/{ticketId}/metadata" : {
+      "patch" : {
+        "tags" : [ "3B. Staff Ticket Workspace (UC03)" ],
+        "summary" : "Cập nhật priority / categoryId (bắt buộc version)",
+        "operationId" : "updateMetadata",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MetadataUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StaffTicketDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/{notificationId}/read" : {
+      "patch" : {
+        "tags" : [ "5. Notifications (UC04-UC05)" ],
+        "summary" : "Đánh dấu 1 thông báo đã đọc",
+        "operationId" : "markRead",
+        "parameters" : [ {
+          "name" : "notificationId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NotificationDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me/availability" : {
+      "patch" : {
+        "tags" : [ "1. Identity & Auth (UC00)" ],
+        "summary" : "Cập nhật trạng thái sẵn sàng nhận ticket tự động (UC04)",
+        "operationId" : "updateAvailability",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AvailabilityRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AvailabilityResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{userId}" : {
+      "patch" : {
+        "tags" : [ "1B. Platform Admin CRUD (UC00 / FR01)" ],
+        "summary" : "Cập nhật thông tin, khóa/mở khóa hoặc đổi vai trò người dùng",
+        "operationId" : "updateUser",
+        "parameters" : [ {
+          "name" : "userId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AdminUserUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/teams/{teamId}" : {
+      "patch" : {
+        "tags" : [ "1B. Platform Admin CRUD (UC00 / FR01)" ],
+        "summary" : "Cập nhật tên, trưởng nhóm hoặc trạng thái nhóm hỗ trợ",
+        "operationId" : "updateTeam",
+        "parameters" : [ {
+          "name" : "teamId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AdminTeamUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TeamDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/routing/rules/{ruleId}" : {
+      "patch" : {
+        "tags" : [ "4. AI Classification & Routing (UC04)" ],
+        "summary" : "Cập nhật luật định tuyến",
+        "operationId" : "updateRule",
+        "parameters" : [ {
+          "name" : "ruleId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RoutingRuleUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RoutingRuleDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/channel-accounts/{id}" : {
+      "patch" : {
+        "tags" : [ "1B. Platform Admin CRUD (UC00 / FR01)" ],
+        "summary" : "Cập nhật hoặc bật/tắt tài khoản kênh tiếp nhận",
+        "operationId" : "updateChannelAccount",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChannelAccountUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChannelAccountDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/categories/{categoryId}" : {
+      "patch" : {
+        "tags" : [ "1B. Platform Admin CRUD (UC00 / FR01)" ],
+        "summary" : "Cập nhật tên hoặc trạng thái danh mục",
+        "operationId" : "updateCategory",
+        "parameters" : [ {
+          "name" : "categoryId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AdminCategoryUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CategoryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tickets" : {
+      "get" : {
+        "tags" : [ "3B. Staff Ticket Workspace (UC03)" ],
+        "summary" : "Danh sách ticket theo phạm vi phân quyền",
+        "operationId" : "searchTickets",
+        "parameters" : [ {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "NEW", "ASSIGNED", "IN_PROGRESS", "WAITING_CUSTOMER", "RESOLVED", "CLOSED", "CANCELLED" ]
+          }
+        }, {
+          "name" : "priority",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "URGENT", "HIGH", "NORMAL", "LOW" ]
+          }
+        }, {
+          "name" : "categoryId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "teamId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "assignedAgentId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "unassignedOnly",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : false
+          }
+        }, {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "pageable",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Pageable"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseStaffTicketDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tickets/{ticketId}" : {
+      "get" : {
+        "tags" : [ "3B. Staff Ticket Workspace (UC03)" ],
+        "summary" : "Chi tiết ticket cho nhân viên (kèm version và allowedTransitions)",
+        "operationId" : "getTicketDetail",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StaffTicketDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tickets/{ticketId}/sla" : {
+      "get" : {
+        "tags" : [ "5. SLA & Escalations (UC05)" ],
+        "summary" : "Xem chi tiết 2 mốc SLA, lịch sử pause, cảnh báo và chuyển cấp của ticket",
+        "operationId" : "getTicketSla",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TicketSlaDetailDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tickets/{ticketId}/events" : {
+      "get" : {
+        "tags" : [ "3B. Staff Ticket Workspace (UC03)" ],
+        "summary" : "Lịch sử kiểm toán thay đổi của ticket",
+        "operationId" : "listEvents",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TicketEventDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/teams" : {
+      "get" : {
+        "tags" : [ "1. Identity & Reference Data (UC00)" ],
+        "summary" : "Danh sách nhóm hỗ trợ (Staff only)",
+        "operationId" : "listTeams",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TeamDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sla/policies" : {
+      "get" : {
+        "tags" : [ "5. SLA & Escalations (UC05)" ],
+        "summary" : "Danh sách chính sách SLA (kèm 2 mốc FIRST_RESPONSE & RESOLUTION)",
+        "operationId" : "listPolicies",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SlaPolicyDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sla/escalations" : {
+      "get" : {
+        "tags" : [ "5. SLA & Escalations (UC05)" ],
+        "summary" : "Danh sách các sự kiện cảnh báo / vi phạm SLA",
+        "operationId" : "listEscalations",
+        "parameters" : [ {
+          "name" : "eventType",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "WARNING", "BREACH" ]
+          }
+        }, {
+          "name" : "pageable",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Pageable"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseSlaEventDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/routing/tickets/{ticketId}/classifications" : {
+      "get" : {
+        "tags" : [ "4. AI Classification & Routing (UC04)" ],
+        "summary" : "Xem lịch sử kết quả phân loại AI của ticket",
+        "operationId" : "listClassifications",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ClassificationResultDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/routing/rules" : {
+      "get" : {
+        "tags" : [ "4. AI Classification & Routing (UC04)" ],
+        "summary" : "Danh sách luật định tuyến (routing_rule)",
+        "operationId" : "listRules",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RoutingRuleDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/routing/review-queue" : {
+      "get" : {
+        "tags" : [ "4. AI Classification & Routing (UC04)" ],
+        "summary" : "Hàng đợi Fallback chờ Supervisor phân công thủ công",
+        "operationId" : "listReviewQueue",
+        "parameters" : [ {
+          "name" : "pageable",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Pageable"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseReviewQueueItemDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/overview" : {
+      "get" : {
+        "tags" : [ "6C. Reporting & KPI Dashboard (UC08)" ],
+        "summary" : "Báo cáo tổng quan hợp nhất 3 khối KPI (Ticket, SLA, CSAT) trên cùng mốc asOf",
+        "operationId" : "getOverview",
+        "parameters" : [ {
+          "name" : "days",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 30
+          }
+        }, {
+          "name" : "teamId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportOverviewDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications" : {
+      "get" : {
+        "tags" : [ "5. Notifications (UC04-UC05)" ],
+        "summary" : "Danh sách thông báo của người dùng hiện tại",
+        "operationId" : "listMyNotifications",
+        "parameters" : [ {
+          "name" : "unreadOnly",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : false
+          }
+        }, {
+          "name" : "pageable",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Pageable"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseNotificationDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/chunks/{chunkId}" : {
+      "get" : {
+        "tags" : [ "6A. Knowledge Base (UC06)" ],
+        "summary" : "Xem chi tiết một đoạn kb_chunk phục vụ kiểm tra trích dẫn AI",
+        "operationId" : "getChunkPreview",
+        "parameters" : [ {
+          "name" : "chunkId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbChunkDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kb/articles/{articleId}" : {
+      "get" : {
+        "tags" : [ "6A. Knowledge Base (UC06)" ],
+        "summary" : "Xem chi tiết bài viết KB kèm toàn bộ lịch sử phiên bản",
+        "operationId" : "getArticleDetail",
+        "parameters" : [ {
+          "name" : "articleId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KbArticleDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/intake/web-requests/{requestId}" : {
+      "get" : {
+        "tags" : [ "2. Omnichannel Intake & Webhooks (UC01-UC02)" ],
+        "summary" : "Tra cứu trạng thái yêu cầu tiếp nhận (inbound_event)",
+        "operationId" : "getWebRequestStatus",
+        "parameters" : [ {
+          "name" : "requestId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebIntakeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer/tickets" : {
+      "get" : {
+        "tags" : [ "3A. Customer Ticket Portal (UC03)" ],
+        "summary" : "Danh sách ticket của khách hàng hiện tại",
+        "operationId" : "listMyTickets",
+        "parameters" : [ {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "NEW", "ASSIGNED", "IN_PROGRESS", "WAITING_CUSTOMER", "RESOLVED", "CLOSED", "CANCELLED" ]
+          }
+        }, {
+          "name" : "pageable",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Pageable"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseCustomerTicketDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer/tickets/{ticketId}" : {
+      "get" : {
+        "tags" : [ "3A. Customer Ticket Portal (UC03)" ],
+        "summary" : "Chi tiết ticket của khách hàng (không chứa dữ liệu nội bộ)",
+        "operationId" : "getMyTicket",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CustomerTicketDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer/kb/articles" : {
+      "get" : {
+        "tags" : [ "6A. Knowledge Base (UC06)" ],
+        "summary" : "Tra cứu bài KB công khai (access_scope=PUBLIC & đang PUBLISHED)",
+        "operationId" : "listPublicArticles",
+        "parameters" : [ {
+          "name" : "pageable",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Pageable"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseKbArticleDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/categories" : {
+      "get" : {
+        "tags" : [ "1. Identity & Reference Data (UC00)" ],
+        "summary" : "Danh sách danh mục yêu cầu (Public)",
+        "operationId" : "listCategories",
+        "parameters" : [ {
+          "name" : "activeOnly",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : true
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CategoryDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me" : {
+      "get" : {
+        "tags" : [ "1. Identity & Auth (UC00)" ],
+        "summary" : "Lấy thông tin người dùng hiện tại",
+        "operationId" : "me",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/attachments/{attachmentId}/download" : {
+      "get" : {
+        "tags" : [ "2B. Attachments (UC01-UC03)" ],
+        "summary" : "Tải tệp đính kèm (chặn CUSTOMER tải file thuộc tin nhắn INTERNAL)",
+        "operationId" : "download",
+        "parameters" : [ {
+          "name" : "attachmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/inbound-events" : {
+      "get" : {
+        "tags" : [ "2. Omnichannel Intake & Webhooks (UC01-UC02)" ],
+        "summary" : "Giám sát nhật ký inbound_event (Admin/Supervisor)",
+        "operationId" : "listInboundEvents",
+        "parameters" : [ {
+          "name" : "processStatus",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "RECEIVED", "PROCESSED", "FAILED" ]
+          }
+        }, {
+          "name" : "pageable",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Pageable"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseInboundEventSummaryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/channels" : {
+      "get" : {
+        "tags" : [ "1B. Platform Admin CRUD (UC00 / FR01)" ],
+        "summary" : "Danh sách kênh tiếp nhận và các tài khoản kênh",
+        "operationId" : "listChannels",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ChannelWithAccountsDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "KbVersionCreateOrUpdateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "title" : {
+            "type" : "string",
+            "maxLength" : 250,
+            "minLength" : 0
+          },
+          "summary" : {
+            "type" : "string",
+            "maxLength" : 2000,
+            "minLength" : 0
+          },
+          "content" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "content", "title" ]
+      },
+      "KbVersionDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "articleId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "versionNumber" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "summary" : {
+            "type" : "string"
+          },
+          "content" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "DRAFT", "IN_REVIEW", "PUBLISHED", "REJECTED", "ARCHIVED" ]
+          },
+          "createdBy" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "reviewedBy" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "reviewNote" : {
+            "type" : "string"
+          },
+          "publishedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "archivedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "TeamDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "supervisorId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "supervisorName" : {
+            "type" : "string"
+          },
+          "memberCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "isActive" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "WebhookInboundRequest" : {
+        "type" : "object",
+        "properties" : {
+          "channelAccountCode" : {
+            "type" : "string"
+          },
+          "externalEventId" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 0
+          },
+          "externalThreadId" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 0
+          },
+          "externalMessageId" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 0
+          },
+          "sender" : {
+            "$ref" : "#/components/schemas/WebhookSender"
+          },
+          "subject" : {
+            "type" : "string",
+            "maxLength" : 300,
+            "minLength" : 0
+          },
+          "body" : {
+            "type" : "string",
+            "maxLength" : 10000,
+            "minLength" : 0
+          },
+          "occurredAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        },
+        "required" : [ "body", "channelAccountCode", "externalEventId", "externalThreadId", "sender" ]
+      },
+      "WebhookSender" : {
+        "type" : "object",
+        "properties" : {
+          "externalUserId" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 0
+          },
+          "displayName" : {
+            "type" : "string",
+            "maxLength" : 150,
+            "minLength" : 0
+          },
+          "email" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 0
+          },
+          "phone" : {
+            "type" : "string",
+            "maxLength" : 30,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "externalUserId" ]
+      },
+      "WebhookInboundResponse" : {
+        "type" : "object",
+        "properties" : {
+          "inboundEventId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "externalEventId" : {
+            "type" : "string"
+          },
+          "processStatus" : {
+            "type" : "string",
+            "enum" : [ "RECEIVED", "PROCESSED", "FAILED" ]
+          },
+          "duplicate" : {
+            "type" : "boolean"
+          },
+          "action" : {
+            "type" : "string"
+          },
+          "ticketId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "ticketCode" : {
+            "type" : "string"
+          },
+          "messageId" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "TransferTicketRequest" : {
+        "type" : "object",
+        "properties" : {
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "teamId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "assignedAgentId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "reason", "teamId", "version" ]
+      },
+      "StaffTicketDetailDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "ticketCode" : {
+            "type" : "string"
+          },
+          "conversationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "parentTicketId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "subject" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "NEW", "ASSIGNED", "IN_PROGRESS", "WAITING_CUSTOMER", "RESOLVED", "CLOSED", "CANCELLED" ]
+          },
+          "priority" : {
+            "type" : "string",
+            "enum" : [ "URGENT", "HIGH", "NORMAL", "LOW" ]
+          },
+          "resolutionCode" : {
+            "type" : "string"
+          },
+          "cancelReason" : {
+            "type" : "string"
+          },
+          "channelId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "categoryId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "teamId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "assignedAgentId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "customerId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "allowedTransitions" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "resolvedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "closedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "StaffMessageCreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "visibility" : {
+            "type" : "string",
+            "enum" : [ "PUBLIC", "INTERNAL" ]
+          },
+          "body" : {
+            "type" : "string",
+            "maxLength" : 10000,
+            "minLength" : 0
+          },
+          "targetStatus" : {
+            "type" : "string",
+            "enum" : [ "NEW", "ASSIGNED", "IN_PROGRESS", "WAITING_CUSTOMER", "RESOLVED", "CLOSED", "CANCELLED" ]
+          },
+          "resolutionCode" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "body", "visibility" ]
+      },
+      "StaffMessageCreateResponse" : {
+        "type" : "object",
+        "properties" : {
+          "message" : {
+            "$ref" : "#/components/schemas/StaffMessageDto"
+          },
+          "ticketStatus" : {
+            "type" : "string",
+            "enum" : [ "NEW", "ASSIGNED", "IN_PROGRESS", "WAITING_CUSTOMER", "RESOLVED", "CLOSED", "CANCELLED" ]
+          },
+          "ticketVersion" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "StaffMessageDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "ticketId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "senderUserId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "senderDisplayName" : {
+            "type" : "string"
+          },
+          "senderType" : {
+            "type" : "string",
+            "enum" : [ "CUSTOMER", "AGENT", "SUPERVISOR", "AI_BOT", "SYSTEM" ]
+          },
+          "direction" : {
+            "type" : "string",
+            "enum" : [ "INBOUND", "OUTBOUND", "INTERNAL" ]
+          },
+          "visibility" : {
+            "type" : "string",
+            "enum" : [ "PUBLIC", "INTERNAL" ]
+          },
+          "isAutoAck" : {
+            "type" : "boolean"
+          },
+          "body" : {
+            "type" : "string"
+          },
+          "deliveryStatus" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "SENT", "DELIVERED", "FAILED" ]
+          },
+          "occurredAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "RagSuggestionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "customQuery" : {
+            "type" : "string",
+            "maxLength" : 2000,
+            "minLength" : 0
+          },
+          "topK" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 10,
+            "minimum" : 1
+          }
+        }
+      },
+      "AiCitationDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "kbChunkId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "kbVersionId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "articleId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "articleCode" : {
+            "type" : "string"
+          },
+          "articleTitle" : {
+            "type" : "string"
+          },
+          "heading" : {
+            "type" : "string"
+          },
+          "excerpt" : {
+            "type" : "string"
+          },
+          "relevanceScore" : {
+            "type" : "number"
+          },
+          "citationOrder" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "intentIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "AiFeedbackDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "aiRunId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "agentId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "decision" : {
+            "type" : "string",
+            "enum" : [ "ACCEPTED_AS_IS", "EDITED_AND_SENT", "REJECTED", "ESCALATED" ]
+          },
+          "note" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "AiRunDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "ticketId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "taskType" : {
+            "type" : "string",
+            "enum" : [ "RAG_SUGGESTION", "AUTO_REPLY" ]
+          },
+          "modelName" : {
+            "type" : "string"
+          },
+          "promptVersion" : {
+            "type" : "string"
+          },
+          "outcome" : {
+            "type" : "string",
+            "enum" : [ "SUGGESTED", "CLARIFICATION_REQUIRED", "AUTO_SENT", "FALLBACK_TO_AGENT", "FAILED" ]
+          },
+          "answerText" : {
+            "type" : "string"
+          },
+          "confidence" : {
+            "type" : "number"
+          },
+          "fallbackReason" : {
+            "type" : "string",
+            "enum" : [ "NO_RELEVANT_KB", "CONFLICTING_SOURCES", "OUTDATED_OR_REVOKED_KB", "LOW_CONFIDENCE", "OUT_OF_AUTO_SCOPE", "CUSTOMER_REQUESTED_HUMAN", "CITATION_INVALID", "AI_SERVICE_ERROR", "QUERY_NEEDS_CLARIFICATION", "QUERY_PLAN_INVALID", "RAG_OUTPUT_INVALID", "INPUT_LIMIT_EXCEEDED", "RULE_SOURCE_MISMATCH", "CONTEXT_LIMIT_EXCEEDED", "REQUEST_DEADLINE_EXCEEDED" ]
+          },
+          "latencyMs" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "citations" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AiCitationDto"
+            }
+          },
+          "feedback" : {
+            "$ref" : "#/components/schemas/AiFeedbackDto"
+          }
+        }
+      },
+      "EscalationActionCreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "action" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "note" : {
+            "type" : "string",
+            "maxLength" : 2000,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "action" ]
+      },
+      "EscalationActionDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "slaEventId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "handledBy" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "handledByName" : {
+            "type" : "string"
+          },
+          "action" : {
+            "type" : "string"
+          },
+          "note" : {
+            "type" : "string"
+          },
+          "handledAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ClassificationResultDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "ticketId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "suggestedCategoryId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "confidence" : {
+            "type" : "number"
+          },
+          "modelVersion" : {
+            "type" : "string"
+          },
+          "outcome" : {
+            "type" : "string",
+            "enum" : [ "APPLIED", "REVIEW_REQUIRED", "FAILED", "SKIPPED" ]
+          },
+          "failureReason" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ManualAssignRequest" : {
+        "type" : "object",
+        "properties" : {
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "categoryId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "teamId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "agentId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "agentId", "categoryId", "reason", "teamId", "version" ]
+      },
+      "AssignmentResultDto" : {
+        "type" : "object",
+        "properties" : {
+          "ticketId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "NEW", "ASSIGNED", "IN_PROGRESS", "WAITING_CUSTOMER", "RESOLVED", "CLOSED", "CANCELLED" ]
+          },
+          "categoryId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "teamId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "assignedAgentId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "assignmentSource" : {
+            "type" : "string",
+            "enum" : [ "AUTO", "MANUAL" ]
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "assignedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "KbRevokeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 0
+          }
+        }
+      },
+      "KbRevokeResponse" : {
+        "type" : "object",
+        "properties" : {
+          "versionId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "DRAFT", "IN_REVIEW", "PUBLISHED", "REJECTED", "ARCHIVED" ]
+          },
+          "deactivatedChunks" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "archivedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "KbRejectRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reviewNote" : {
+            "type" : "string",
+            "maxLength" : 2000,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "reviewNote" ]
+      },
+      "KbArticleCreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "articleCode" : {
+            "type" : "string",
+            "maxLength" : 30,
+            "minLength" : 0
+          },
+          "categoryId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "accessScope" : {
+            "type" : "string",
+            "enum" : [ "PUBLIC", "INTERNAL_AGENT" ]
+          },
+          "allowAutoReply" : {
+            "type" : "boolean"
+          },
+          "title" : {
+            "type" : "string",
+            "maxLength" : 250,
+            "minLength" : 0
+          },
+          "summary" : {
+            "type" : "string",
+            "maxLength" : 2000,
+            "minLength" : 0
+          },
+          "content" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "accessScope", "articleCode", "content", "title" ]
+      },
+      "KbArticleDetailDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "articleCode" : {
+            "type" : "string"
+          },
+          "categoryId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "accessScope" : {
+            "type" : "string",
+            "enum" : [ "PUBLIC", "INTERNAL_AGENT" ]
+          },
+          "allowAutoReply" : {
+            "type" : "boolean"
+          },
+          "currentPublishedVersionId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "versions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/KbVersionDto"
+            }
+          }
+        }
+      },
+      "ContactInfo" : {
+        "type" : "object",
+        "properties" : {
+          "fullName" : {
+            "type" : "string",
+            "maxLength" : 150,
+            "minLength" : 0
+          },
+          "email" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 0
+          },
+          "phone" : {
+            "type" : "string",
+            "maxLength" : 30,
+            "minLength" : 0
+          }
+        }
+      },
+      "WebIntakeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "subject" : {
+            "type" : "string",
+            "maxLength" : 300,
+            "minLength" : 0
+          },
+          "description" : {
+            "type" : "string",
+            "maxLength" : 10000,
+            "minLength" : 0
+          },
+          "categoryId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "contact" : {
+            "$ref" : "#/components/schemas/ContactInfo"
+          },
+          "attachmentIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        },
+        "required" : [ "description", "subject" ]
+      },
+      "WebIntakeResponse" : {
+        "type" : "object",
+        "properties" : {
+          "requestId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "idempotencyKey" : {
+            "type" : "string"
+          },
+          "processStatus" : {
+            "type" : "string",
+            "enum" : [ "RECEIVED", "PROCESSED", "FAILED" ]
+          },
+          "ticketId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "ticketCode" : {
+            "type" : "string"
+          },
+          "duplicate" : {
+            "type" : "boolean"
+          },
+          "receivedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "CustomerReopenRequest" : {
+        "type" : "object",
+        "properties" : {
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 5
+          }
+        },
+        "required" : [ "reason", "version" ]
+      },
+      "CsatSummaryDto" : {
+        "type" : "object",
+        "properties" : {
+          "eligible" : {
+            "type" : "boolean"
+          },
+          "submitted" : {
+            "type" : "boolean"
+          },
+          "score" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "comment" : {
+            "type" : "string"
+          },
+          "submittedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "CustomerTicketDetailDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "ticketCode" : {
+            "type" : "string"
+          },
+          "subject" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "NEW", "ASSIGNED", "IN_PROGRESS", "WAITING_CUSTOMER", "RESOLVED", "CLOSED", "CANCELLED" ]
+          },
+          "channelId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "categoryId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "assignedAgentName" : {
+            "type" : "string"
+          },
+          "resolutionCode" : {
+            "type" : "string"
+          },
+          "resolvedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "closedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "csat" : {
+            "$ref" : "#/components/schemas/CsatSummaryDto"
+          }
+        }
+      },
+      "CustomerReplyRequest" : {
+        "type" : "object",
+        "properties" : {
+          "body" : {
+            "type" : "string",
+            "maxLength" : 10000,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "body" ]
+      },
+      "CustomerMessageDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "senderType" : {
+            "type" : "string",
+            "enum" : [ "CUSTOMER", "AGENT", "SUPERVISOR", "AI_BOT", "SYSTEM" ]
+          },
+          "senderDisplayName" : {
+            "type" : "string"
+          },
+          "direction" : {
+            "type" : "string",
+            "enum" : [ "INBOUND", "OUTBOUND", "INTERNAL" ]
+          },
+          "isAutoAck" : {
+            "type" : "boolean"
+          },
+          "body" : {
+            "type" : "string"
+          },
+          "occurredAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "citations" : {
+            "type" : "array",
+            "items" : {
+              "type" : "object"
+            }
+          }
+        }
+      },
+      "CsatSubmitRequest" : {
+        "type" : "object",
+        "properties" : {
+          "score" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 5,
+            "minimum" : 1
+          },
+          "comment" : {
+            "type" : "string",
+            "maxLength" : 2000,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "score" ]
+      },
+      "CsatResponse" : {
+        "type" : "object",
+        "properties" : {
+          "ticketId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "score" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "comment" : {
+            "type" : "string"
+          },
+          "submittedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "CustomerCloseRequest" : {
+        "type" : "object",
+        "properties" : {
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "version" ]
+      },
+      "RegisterRequest" : {
+        "type" : "object",
+        "properties" : {
+          "fullName" : {
+            "type" : "string",
+            "maxLength" : 150,
+            "minLength" : 0
+          },
+          "email" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 0
+          },
+          "password" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 8
+          },
+          "phone" : {
+            "type" : "string",
+            "maxLength" : 30,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "email", "fullName", "password" ]
+      },
+      "AuthResponse" : {
+        "type" : "object",
+        "properties" : {
+          "accessToken" : {
+            "type" : "string"
+          },
+          "refreshToken" : {
+            "type" : "string"
+          },
+          "tokenType" : {
+            "type" : "string"
+          },
+          "expiresInSeconds" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "user" : {
+            "$ref" : "#/components/schemas/UserProfileDto"
+          }
+        }
+      },
+      "UserProfileDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "fullName" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "phone" : {
+            "type" : "string"
+          },
+          "roles" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            },
+            "uniqueItems" : true
+          },
+          "teamIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            },
+            "uniqueItems" : true
+          },
+          "customerId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "isActive" : {
+            "type" : "boolean"
+          },
+          "isAvailable" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "RefreshTokenRequest" : {
+        "type" : "object",
+        "properties" : {
+          "refreshToken" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "refreshToken" ]
+      },
+      "LoginRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string"
+          },
+          "password" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "email", "password" ]
+      },
+      "AttachmentDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "messageId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "mimeType" : {
+            "type" : "string"
+          },
+          "sizeBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "AiFeedbackCreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "decision" : {
+            "type" : "string",
+            "enum" : [ "ACCEPTED_AS_IS", "EDITED_AND_SENT", "REJECTED", "ESCALATED" ]
+          },
+          "note" : {
+            "type" : "string",
+            "maxLength" : 2000,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "decision" ]
+      },
+      "AdminUserCreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "fullName" : {
+            "type" : "string",
+            "maxLength" : 150,
+            "minLength" : 0
+          },
+          "email" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 0
+          },
+          "password" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 8
+          },
+          "phone" : {
+            "type" : "string",
+            "maxLength" : 30,
+            "minLength" : 0
+          },
+          "roles" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "enum" : [ "CUSTOMER", "AGENT", "SUPERVISOR", "ADMIN" ]
+            },
+            "uniqueItems" : true
+          },
+          "available" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "email", "fullName", "password", "roles" ]
+      },
+      "AdminTeamCreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "maxLength" : 30,
+            "minLength" : 0
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "supervisorId" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "code", "name", "supervisorId" ]
+      },
+      "SlaPolicyCreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "priority" : {
+            "type" : "string",
+            "enum" : [ "URGENT", "HIGH", "NORMAL", "LOW" ]
+          },
+          "targets" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SlaTargetCreateRequest"
+            }
+          }
+        },
+        "required" : [ "name", "priority", "targets" ]
+      },
+      "SlaTargetCreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "metric" : {
+            "type" : "string",
+            "enum" : [ "FIRST_RESPONSE", "RESOLUTION" ]
+          },
+          "targetSeconds" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 60
+          },
+          "warningRatio" : {
+            "type" : "number",
+            "maximum" : 0.99,
+            "minimum" : 0.01
+          }
+        },
+        "required" : [ "metric", "warningRatio" ]
+      },
+      "SlaPolicyDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "priority" : {
+            "type" : "string",
+            "enum" : [ "URGENT", "HIGH", "NORMAL", "LOW" ]
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "isActive" : {
+            "type" : "boolean"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "targets" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SlaTargetDto"
+            }
+          }
+        }
+      },
+      "SlaTargetDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "metric" : {
+            "type" : "string",
+            "enum" : [ "FIRST_RESPONSE", "RESOLUTION" ]
+          },
+          "targetSeconds" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "warningRatio" : {
+            "type" : "number"
+          }
+        }
+      },
+      "RoutingRuleCreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "categoryId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "teamId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "confidenceThreshold" : {
+            "type" : "number",
+            "maximum" : 1.0,
+            "minimum" : 0.0
+          },
+          "autoAssignEnabled" : {
+            "type" : "boolean"
+          },
+          "isActive" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "categoryId", "confidenceThreshold", "teamId" ]
+      },
+      "RoutingRuleDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "categoryId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "teamId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "confidenceThreshold" : {
+            "type" : "number"
+          },
+          "autoAssignEnabled" : {
+            "type" : "boolean"
+          },
+          "isActive" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ChannelAccountCreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "channelCode" : {
+            "type" : "string",
+            "enum" : [ "WEB_FORM", "EMAIL", "LIVE_CHAT", "FACEBOOK", "ZALO" ]
+          },
+          "accountCode" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "displayName" : {
+            "type" : "string",
+            "maxLength" : 150,
+            "minLength" : 0
+          },
+          "configMetadata" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "accountCode", "channelCode", "displayName" ]
+      },
+      "ChannelAccountDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "channelId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "channelCode" : {
+            "type" : "string",
+            "enum" : [ "WEB_FORM", "EMAIL", "LIVE_CHAT", "FACEBOOK", "ZALO" ]
+          },
+          "accountCode" : {
+            "type" : "string"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "configMetadata" : {
+            "type" : "string"
+          },
+          "active" : {
+            "type" : "boolean"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "AdminCategoryCreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "code", "name" ]
+      },
+      "CategoryDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "isActive" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "StatusUpdateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "targetStatus" : {
+            "type" : "string",
+            "enum" : [ "NEW", "ASSIGNED", "IN_PROGRESS", "WAITING_CUSTOMER", "RESOLVED", "CLOSED", "CANCELLED" ]
+          },
+          "resolutionCode" : {
+            "type" : "string"
+          },
+          "cancelReason" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "targetStatus", "version" ]
+      },
+      "MetadataUpdateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "priority" : {
+            "type" : "string",
+            "enum" : [ "URGENT", "HIGH", "NORMAL", "LOW" ]
+          },
+          "categoryId" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "version" ]
+      },
+      "NotificationDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "recipientId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "ticketId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "slaEventId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "assignmentHistoryId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "deliveryStatus" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "SENT", "FAILED" ]
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "sentAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "readAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "AvailabilityRequest" : {
+        "type" : "object",
+        "properties" : {
+          "isAvailable" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "isAvailable" ]
+      },
+      "AvailabilityResponse" : {
+        "type" : "object",
+        "properties" : {
+          "userId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "isAvailable" : {
+            "type" : "boolean"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "AdminUserUpdateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "fullName" : {
+            "type" : "string",
+            "maxLength" : 150,
+            "minLength" : 0
+          },
+          "phone" : {
+            "type" : "string",
+            "maxLength" : 30,
+            "minLength" : 0
+          },
+          "active" : {
+            "type" : "boolean"
+          },
+          "available" : {
+            "type" : "boolean"
+          },
+          "roles" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "enum" : [ "CUSTOMER", "AGENT", "SUPERVISOR", "ADMIN" ]
+            },
+            "uniqueItems" : true
+          }
+        }
+      },
+      "AdminTeamUpdateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "supervisorId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "active" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "RoutingRuleUpdateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "teamId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "confidenceThreshold" : {
+            "type" : "number",
+            "maximum" : 1.0,
+            "minimum" : 0.0
+          },
+          "autoAssignEnabled" : {
+            "type" : "boolean"
+          },
+          "isActive" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ChannelAccountUpdateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "displayName" : {
+            "type" : "string",
+            "maxLength" : 150,
+            "minLength" : 0
+          },
+          "configMetadata" : {
+            "type" : "string"
+          },
+          "active" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "AdminCategoryUpdateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "active" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "Pageable" : {
+        "type" : "object",
+        "properties" : {
+          "page" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 0
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 1
+          },
+          "sort" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "PageResponseStaffTicketDetailDto" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StaffTicketDetailDto"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "SlaEventDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "ticketSlaId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "ticketId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "metric" : {
+            "type" : "string",
+            "enum" : [ "FIRST_RESPONSE", "RESOLUTION" ]
+          },
+          "eventType" : {
+            "type" : "string",
+            "enum" : [ "WARNING", "BREACH" ]
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "actions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EscalationActionDto"
+            }
+          }
+        }
+      },
+      "SlaPauseDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "pausedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "resumedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "reason" : {
+            "type" : "string",
+            "enum" : [ "WAITING_CUSTOMER", "RESOLVED_UNTIL_REOPEN" ]
+          }
+        }
+      },
+      "TicketSlaDetailDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "ticketId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "metric" : {
+            "type" : "string",
+            "enum" : [ "FIRST_RESPONSE", "RESOLUTION" ]
+          },
+          "targetSeconds" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "warningRatio" : {
+            "type" : "number"
+          },
+          "startedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "deadlineAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "completedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "trackingStatus" : {
+            "type" : "string",
+            "enum" : [ "RUNNING", "PAUSED", "COMPLETED", "CANCELLED" ]
+          },
+          "breachedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "pauses" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SlaPauseDto"
+            }
+          },
+          "events" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SlaEventDto"
+            }
+          }
+        }
+      },
+      "TicketEventDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "ticketId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "actorId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "actionType" : {
+            "type" : "string",
+            "enum" : [ "CREATED", "STATUS_CHANGE", "ASSIGNMENT_CHANGE", "PRIORITY_CHANGE", "CATEGORY_CHANGE", "REOPENED", "CANCELLED" ]
+          },
+          "fieldName" : {
+            "type" : "string"
+          },
+          "oldValue" : {
+            "type" : "string"
+          },
+          "newValue" : {
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "PageResponseSlaEventDto" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SlaEventDto"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "PageResponseReviewQueueItemDto" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReviewQueueItemDto"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ReviewQueueItemDto" : {
+        "type" : "object",
+        "properties" : {
+          "ticketId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "ticketCode" : {
+            "type" : "string"
+          },
+          "subject" : {
+            "type" : "string"
+          },
+          "priority" : {
+            "type" : "string",
+            "enum" : [ "URGENT", "HIGH", "NORMAL", "LOW" ]
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "NEW", "ASSIGNED", "IN_PROGRESS", "WAITING_CUSTOMER", "RESOLVED", "CLOSED", "CANCELLED" ]
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "latestClassification" : {
+            "$ref" : "#/components/schemas/ClassificationResultDto"
+          }
+        }
+      },
+      "CategoryCountDto" : {
+        "type" : "object",
+        "properties" : {
+          "categoryId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "categoryCode" : {
+            "type" : "string"
+          },
+          "categoryName" : {
+            "type" : "string"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "CsatMetricsDto" : {
+        "type" : "object",
+        "properties" : {
+          "averageScore" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "submittedCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "distribution" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ScoreCountDto"
+            }
+          }
+        }
+      },
+      "RecentSlaAlertDto" : {
+        "type" : "object",
+        "properties" : {
+          "slaEventId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "ticketId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "ticketCode" : {
+            "type" : "string"
+          },
+          "subject" : {
+            "type" : "string"
+          },
+          "priority" : {
+            "type" : "string"
+          },
+          "metric" : {
+            "type" : "string"
+          },
+          "eventType" : {
+            "type" : "string"
+          },
+          "deadlineAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "handled" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ReportOverviewDto" : {
+        "type" : "object",
+        "properties" : {
+          "period" : {
+            "$ref" : "#/components/schemas/ReportPeriodDto"
+          },
+          "scope" : {
+            "$ref" : "#/components/schemas/ReportScopeDto"
+          },
+          "ticketMetrics" : {
+            "$ref" : "#/components/schemas/TicketMetricsDto"
+          },
+          "slaMetrics" : {
+            "$ref" : "#/components/schemas/SlaMetricsDto"
+          },
+          "csatMetrics" : {
+            "$ref" : "#/components/schemas/CsatMetricsDto"
+          }
+        }
+      },
+      "ReportPeriodDto" : {
+        "type" : "object",
+        "properties" : {
+          "days" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "from" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "asOf" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "displayTimezone" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ReportScopeDto" : {
+        "type" : "object",
+        "properties" : {
+          "teamId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "teamName" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ScoreCountDto" : {
+        "type" : "object",
+        "properties" : {
+          "score" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "SlaMetricsDto" : {
+        "type" : "object",
+        "properties" : {
+          "avgFirstResponseSeconds" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "avgNetResolutionSeconds" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "complianceRatePercent" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "eligibleSlaCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "metSlaCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "overdueTicketCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "recentAlerts" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RecentSlaAlertDto"
+            }
+          }
+        }
+      },
+      "StatusCountDto" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "TicketMetricsDto" : {
+        "type" : "object",
+        "properties" : {
+          "totalTickets" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "openTickets" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "byStatus" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StatusCountDto"
+            }
+          },
+          "byCategory" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CategoryCountDto"
+            }
+          }
+        }
+      },
+      "PageResponseNotificationDto" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/NotificationDto"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "KbChunkDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "versionId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "chunkIndex" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "heading" : {
+            "type" : "string"
+          },
+          "content" : {
+            "type" : "string"
+          },
+          "tokenCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "isActive" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "PageResponseKbArticleDetailDto" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/KbArticleDetailDto"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "PageResponseCustomerTicketDetailDto" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CustomerTicketDetailDto"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "InboundEventSummaryDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "channelAccountId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "externalEventId" : {
+            "type" : "string"
+          },
+          "idempotencyKey" : {
+            "type" : "string"
+          },
+          "processStatus" : {
+            "type" : "string",
+            "enum" : [ "RECEIVED", "PROCESSED", "FAILED" ]
+          },
+          "ticketId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "messageId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "receivedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "processedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "PageResponseInboundEventSummaryDto" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InboundEventSummaryDto"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "first" : {
+            "type" : "boolean"
+          },
+          "last" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ChannelWithAccountsDto" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "code" : {
+            "type" : "string",
+            "enum" : [ "WEB_FORM", "EMAIL", "LIVE_CHAT", "FACEBOOK", "ZALO" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "active" : {
+            "type" : "boolean"
+          },
+          "accounts" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ChannelAccountDto"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes" : {
+      "bearerAuth" : {
+        "type" : "http",
+        "name" : "bearerAuth",
+        "scheme" : "bearer",
+        "bearerFormat" : "JWT"
+      }
+    }
+  }
+}
