@@ -2407,13 +2407,18 @@
       "name": "6B. AI RAG Suggestions (UC07)",
       "item": [
         {
-          "name": "Generate AI RAG Suggestion (Gemini 2.5 Flash)",
+          "name": "Generate Two-stage RAG Suggestion",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "rag-{{ticketId}}-1",
+                "description": "Giữ nguyên khi retry cùng đầu vào; đổi hậu tố cho yêu cầu mới hoặc câu hỏi khác."
               }
             ],
             "url": {
@@ -2433,7 +2438,7 @@
             "description": "",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"customQuery\": null,\n  \"topK\": 5\n}",
+              "raw": "{\n  \"customQuery\": null,\n  \"topK\": 10\n}",
               "options": {
                 "raw": {
                   "language": "json"

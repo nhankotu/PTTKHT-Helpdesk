@@ -19,6 +19,14 @@ import com.helpdesk.modules.knowledge.entity.KbVersion;
 import com.helpdesk.modules.knowledge.rag.RagGenerator;
 import com.helpdesk.modules.knowledge.rag.RagGenerator.RagDraftResult;
 import com.helpdesk.modules.knowledge.rag.RagGenerator.ScoredChunk;
+import com.helpdesk.modules.knowledge.rag.pipeline.RagContracts.*;
+import com.helpdesk.modules.knowledge.rag.pipeline.RagPipeline;
+import com.helpdesk.modules.knowledge.rag.pipeline.EvidenceAssembler;
+import com.helpdesk.modules.knowledge.repository.RagRequestStore;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.annotation.Propagation;
 import com.helpdesk.modules.knowledge.repository.AiCitationRepository;
 import com.helpdesk.modules.knowledge.repository.AiRunRepository;
 import com.helpdesk.modules.knowledge.repository.AiSuggestionFeedbackRepository;
@@ -47,6 +55,7 @@ import java.util.stream.Collectors;
 public class AiHelpdeskFacade {
 
     private static final double MIN_RELEVANCE = 0.15;
+    private static final int DEFAULT_TOP_K = 10;
     private static final List<String> INJECTION_MARKERS = List.of(
             "ignore previous instructions",
             "ignore all instructions",
@@ -67,6 +76,10 @@ public class AiHelpdeskFacade {
     private final AiSuggestionFeedbackRepository feedbackRepository;
     private final RagGenerator ragGenerator;
     private final Clock clock;
+    private RagPipeline pipeline;
+    private RagRequestStore requestStore;
+    private EvidenceAssembler evidenceAssembler;
+    private TransactionTemplate transactions;
 
     public AiHelpdeskFacade(
             TicketPublicContextPort ticketPublicContextPort,
@@ -90,8 +103,67 @@ public class AiHelpdeskFacade {
         this.clock = clock;
     }
 
-    @Transactional
+    @Autowired
+    public AiHelpdeskFacade(TicketPublicContextPort context, KbChunkRepository chunks, KbVersionRepository versions,
+            KbArticleRepository articles, AiRunRepository runs, AiCitationRepository citations,
+            AiSuggestionFeedbackRepository feedback, RagGenerator legacy, Clock clock, RagPipeline pipeline,
+            RagRequestStore requests, EvidenceAssembler evidence, PlatformTransactionManager manager) {
+        this(context, chunks, versions, articles, runs, citations, feedback, legacy, clock);
+        this.pipeline = pipeline; this.requestStore = requests; this.evidenceAssembler = evidence;
+        this.transactions = new TransactionTemplate(manager);
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public AiRunDto generateRagSuggestion(Long ticketId, Long requestedBy, RagSuggestionRequest request, String requestKey) {
+        TicketPublicContext context = ticketPublicContextPort.requirePublicContext(ticketId);
+        if (context.status().isTerminal()) throw BusinessException.unprocessable(ErrorCode.INVALID_STATE_TRANSITION, "Không thể tạo gợi ý cho ticket đã đóng.");
+        String question = request != null && request.customQuery() != null && !request.customQuery().isBlank() ? request.customQuery().trim() : buildPublicQuery(context);
+        var sources = new java.util.ArrayList<Source>();
+        sources.add(new Source("question", question)); sources.add(new Source("subject", context.subject()));
+        context.publicMessages().forEach(m -> sources.add(new Source(m.sourceId(), m.body())));
+        Execution execution = pipeline.execute(new Input(ticketId, requestedBy, question, List.copyOf(sources)),
+                request != null && request.topK() != null ? request.topK() : DEFAULT_TOP_K, requestKey);
+        return transactions.execute(status -> {
+            // Recheck ticket access before returning a cached answer or persisting a new draft.
+            ticketPublicContextPort.requirePublicContext(ticketId);
+            if (execution.cachedRunId() != null) {
+                AiRun run = aiRunRepository.findById(execution.cachedRunId()).orElseThrow(() -> BusinessException.notFound("AiRun", execution.cachedRunId()));
+                if (!ticketId.equals(run.getTicketId()) || !requestedBy.equals(run.getRequestedBy())) throw BusinessException.forbidden(ErrorCode.TICKET_ACCESS_DENIED, "Sai phạm vi request AI.");
+                if (actionable(run) && !runSourcesValid(run)) throw BusinessException.conflict(ErrorCode.INVALID_STATE_TRANSITION, "Nguồn của gợi ý đã thay đổi/thu hồi; không dùng lại bản nháp này.");
+                return toAiRunDto(run);
+            }
+            Draft draft = execution.draft();
+            if (!execution.context().isEmpty() && !evidenceAssembler.lockCurrent(execution.context()))
+                draft = Draft.stop(Decision.FALLBACK, "OUTDATED_OR_REVOKED_KB");
+            AiRunOutcome outcome = switch (draft.decision()) {
+                case ANSWER -> AiRunOutcome.SUGGESTED;
+                case ASK_CLARIFICATION -> AiRunOutcome.CLARIFICATION_REQUIRED;
+                case FAILED -> AiRunOutcome.FAILED;
+                default -> AiRunOutcome.FALLBACK_TO_AGENT;
+            };
+            AiFallbackReason reason = draft.reason() == null ? null : AiFallbackReason.valueOf(draft.reason());
+            String storedQuery=question.length()>8000 ? "[INPUT_LIMIT_EXCEEDED sha256="+com.helpdesk.modules.knowledge.rag.pipeline.RagGuards.hash(question)+" chars="+question.length()+"]" : question;
+            AiRun saved = aiRunRepository.save(new AiRun(ticketId, requestedBy, AiTaskType.RAG_SUGGESTION,
+                    execution.modelName(), "two-stage-v1", storedQuery, draft.text(), draft.confidence(), outcome, reason, execution.latencyMs(), Instant.now(clock)));
+            int order = 1;
+            for (Evidence citation : draft.citations()) {
+                var parts=draft.parts().stream().filter(p -> p.supports().stream().anyMatch(s -> s.chunkId()==citation.chunkId())).toList();
+                String quotes=parts.stream().flatMap(p -> p.supports().stream()).filter(s -> s.chunkId()==citation.chunkId()).map(Support::quote).distinct().collect(Collectors.joining("\n\n"));
+                aiCitationRepository.save(new AiCitation(saved.getId(), citation.chunkId(), citation.versionId(), citation.score(), order++, quotes,
+                        jsonString(parts.stream().map(AnswerPart::intentId).distinct().toList())));
+            }
+            String stages;
+            try { stages = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(execution.audit()); }
+            catch (com.fasterxml.jackson.core.JsonProcessingException ex) { throw new IllegalStateException("Cannot encode RAG stage metadata"); }
+            requestStore.complete(requestedBy, execution.requestKey(), saved.getId(), execution.modelName(), draft.reason(), execution.latencyMs(),
+                    stages, execution.context().isEmpty() ? null : evidenceAssembler.fingerprint(execution.context()));
+            return toAiRunDto(saved);
+        });
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public AiRunDto generateRagSuggestion(Long ticketId, Long requestedBy, RagSuggestionRequest request) {
+        if (pipeline != null) throw BusinessException.unprocessable(ErrorCode.MISSING_HEADER,"Cần Idempotency-Key từ client.");
         long startNano = System.nanoTime();
         Instant now = Instant.now(clock);
 
@@ -106,7 +178,7 @@ public class AiHelpdeskFacade {
         String query = (request != null && request.customQuery() != null && !request.customQuery().isBlank())
                 ? request.customQuery().trim()
                 : buildPublicQuery(ctx);
-        int topK = (request != null && request.topK() != null) ? request.topK() : 5;
+        int topK = (request != null && request.topK() != null) ? request.topK() : DEFAULT_TOP_K;
 
         if (isPromptInjection(query)) {
             return saveFallback(ticketId, requestedBy, "guardrail", "rag-v1.0", query,
@@ -162,6 +234,7 @@ public class AiHelpdeskFacade {
 
     @Transactional(readOnly = true)
     public List<AiRunDto> listSuggestionsForTicket(Long ticketId) {
+        ticketPublicContextPort.requirePublicContext(ticketId);
         return aiRunRepository.findByTicketIdOrderByCreatedAtDesc(ticketId).stream()
                 .map(this::toAiRunDto)
                 .toList();
@@ -172,6 +245,9 @@ public class AiHelpdeskFacade {
         if (!aiRunRepository.existsById(aiRunId)) {
             throw BusinessException.notFound("AiRun", aiRunId);
         }
+        AiRun run=aiRunRepository.findById(aiRunId).orElseThrow();
+        ticketPublicContextPort.requirePublicContext(run.getTicketId());
+        if(pipeline!=null && actionable(run) && !runSourcesValid(run)) throw BusinessException.conflict(ErrorCode.INVALID_STATE_TRANSITION,"Nguồn đã đổi/thu hồi; không chấp nhận bản nháp cũ.");
         if (feedbackRepository.existsByAiRunId(aiRunId)) {
             throw BusinessException.conflict(ErrorCode.DUPLICATE_RESOURCE, "Gợi ý AI này đã được đánh giá.");
         }
@@ -237,12 +313,14 @@ public class AiHelpdeskFacade {
     }
 
     private AiRunDto toAiRunDto(AiRun run) {
+        if(pipeline!=null && actionable(run) && !runSourcesValid(run)) return new AiRunDto(run.getId(),run.getTicketId(),run.getTaskType(),run.getModelName(),run.getPromptVersion(),
+                AiRunOutcome.FALLBACK_TO_AGENT,null,BigDecimal.ZERO,AiFallbackReason.OUTDATED_OR_REVOKED_KB,run.getLatencyMs(),run.getCreatedAt(),List.of(),null);
         List<AiCitationDto> citations = aiCitationRepository.findByAiRunIdOrderByCitationOrderAsc(run.getId()).stream()
                 .map(c -> {
                     KbChunk chunk = kbChunkRepository.findById(c.getKbChunkId()).orElse(null);
                     KbVersion ver = kbVersionRepository.findById(c.getKbVersionId()).orElse(null);
                     KbArticle art = ver != null ? kbArticleRepository.findById(ver.getArticleId()).orElse(null) : null;
-                    String excerpt = (chunk != null && chunk.getContent().length() > 200)
+                    String excerpt = c.getQuotedText()!=null ? c.getQuotedText() : (chunk != null && chunk.getContent().length() > 200)
                             ? chunk.getContent().substring(0, 200) + "..."
                             : (chunk != null ? chunk.getContent() : "");
                     return new AiCitationDto(
@@ -251,7 +329,7 @@ public class AiHelpdeskFacade {
                             art != null ? art.getArticleCode() : null,
                             ver != null ? ver.getTitle() : null,
                             chunk != null ? chunk.getHeading() : null,
-                            excerpt, c.getRelevanceScore(), c.getCitationOrder()
+                            excerpt, c.getRelevanceScore(), c.getCitationOrder(), intentIds(c.getIntentIds())
                     );
                 })
                 .toList();
@@ -262,6 +340,22 @@ public class AiHelpdeskFacade {
                 run.getOutcome(), run.getAnswerText(), run.getConfidence(), run.getFallbackReason(),
                 run.getLatencyMs(), run.getCreatedAt(), citations, fb
         );
+    }
+    private boolean actionable(AiRun run) { return run.getOutcome()==AiRunOutcome.SUGGESTED || run.getOutcome()==AiRunOutcome.CLARIFICATION_REQUIRED; }
+    private boolean runSourcesValid(AiRun run) {
+        var state=requestStore.sources(run.getId());
+        if(state==null) return false;
+        if(state.ids().isEmpty()) return run.getOutcome()==AiRunOutcome.CLARIFICATION_REQUIRED && state.fingerprint()==null;
+        return evidenceAssembler.cachedCurrent(state.ids(),state.fingerprint());
+    }
+    private String jsonString(Object value) {
+        try { return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(value); }
+        catch(com.fasterxml.jackson.core.JsonProcessingException ex) { throw new IllegalStateException("Cannot encode RAG audit"); }
+    }
+    private List<String> intentIds(String value) {
+        if(value==null) return List.of();
+        try { return new com.fasterxml.jackson.databind.ObjectMapper().readValue(value,new com.fasterxml.jackson.core.type.TypeReference<List<String>>(){}); }
+        catch(Exception ex) { return List.of(); }
     }
 
     private AiFeedbackDto toFeedbackDto(AiSuggestionFeedback f) {

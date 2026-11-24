@@ -114,8 +114,12 @@ public final class KnowledgeDtos {
             String heading,
             String excerpt,
             BigDecimal relevanceScore,
-            int citationOrder
+            int citationOrder,
+            List<String> intentIds
     ) {
+        public AiCitationDto(Long id,Long chunkId,Long versionId,Long articleId,String articleCode,String title,String heading,String excerpt,BigDecimal score,int order) {
+            this(id,chunkId,versionId,articleId,articleCode,title,heading,excerpt,score,order,List.of());
+        }
     }
 
     public record AiFeedbackDto(

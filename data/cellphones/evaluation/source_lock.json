@@ -1,0 +1,14 @@
+{
+  "dataset_version": "1.0",
+  "business": "CellphoneS",
+  "documents": {
+    "CPS-DOI-TRA": {
+      "raw_sha256": "e445a5a2bf03bdfafda6577570a5b1a45fc7a0480ba96c48e8be93db5e142a6d",
+      "content_sha256": "94029f79988918ea707732df890fbfcf51d488a8dfd01dd4ba65e378e41d5a30"
+    },
+    "CPS-GIAO-HANG": {
+      "raw_sha256": "10170d83c099ffae53d3313d4a0d1883715a55de08ed21e95d89f1ac05479fc7",
+      "content_sha256": "8741bcec90522006578b1ce5b875f22d26aea31f7a2aea8093a95a212496a9dd"
+    }
+  }
+}

@@ -31,6 +31,10 @@ public class AiCitation {
 
     @Column(name = "citation_order", nullable = false)
     private int citationOrder;
+    @Column(name = "quoted_text", columnDefinition = "TEXT")
+    private String quotedText;
+    @Column(name = "intent_ids", columnDefinition = "JSON")
+    private String intentIds;
 
     protected AiCitation() {
     }
@@ -42,6 +46,11 @@ public class AiCitation {
         this.relevanceScore = relevanceScore;
         this.citationOrder = citationOrder;
     }
+    public AiCitation(Long runId, Long chunkId, Long versionId, BigDecimal score, int order, String quote, String intents) {
+        this(runId,chunkId,versionId,score,order); this.quotedText=quote; this.intentIds=intents;
+    }
+    public String getQuotedText() { return quotedText; }
+    public String getIntentIds() { return intentIds; }
 
     public Long getId() { return id; }
     public Long getAiRunId() { return aiRunId; }

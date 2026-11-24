@@ -27,6 +27,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -36,6 +39,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -109,6 +113,34 @@ class AiHelpdeskFacadeRagInvariantsTest {
         assertThat(result.citations()).isEmpty();
         verify(kbChunkRepository, never()).findAllActivePublishedChunks();
         verify(aiCitationRepository, never()).save(any());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0,10", "5,5", "10,10"})
+    void forwardsDefaultTenCandidatesAndRespectsExplicitLimit(int requestedLimit, int expectedCount) {
+        var chunks = IntStream.rangeClosed(1, 12).mapToObj(index -> {
+            KbChunk chunk = new KbChunk(70L, index, "Đổi trả", "hộp phí vận chuyển", 4, FIXED_NOW);
+            ReflectionTestUtils.setField(chunk, "id", (long) index);
+            return chunk;
+        }).toList();
+        when(ticketPublicContextPort.requirePublicContext(105L)).thenReturn(new TicketPublicContext(
+                105L, "Đổi trả", TicketStatus.IN_PROGRESS, List.of()));
+        when(kbChunkRepository.findAllActivePublishedChunks()).thenReturn(chunks);
+        when(customRagGenerator.generate(any(), any())).thenReturn(new RagDraftResult(
+                false, null, List.of(), BigDecimal.ZERO, "test", "test"));
+        when(aiCitationRepository.findByAiRunIdOrderByCitationOrderAsc(7001L)).thenReturn(List.of());
+        var target = new AiHelpdeskFacade(ticketPublicContextPort, kbChunkRepository, kbVersionRepository,
+                kbArticleRepository, aiRunRepository, aiCitationRepository, feedbackRepository,
+                customRagGenerator, Clock.fixed(FIXED_NOW, ZoneOffset.UTC));
+        RagSuggestionRequest request = requestedLimit == 0 ? null : new RagSuggestionRequest(null, requestedLimit);
+
+        target.generateRagSuggestion(105L, 20L, request);
+
+        ArgumentCaptor<List<RagGenerator.ScoredChunk>> candidates = ArgumentCaptor.captor();
+        verify(customRagGenerator).generate(any(), candidates.capture());
+        assertThat(candidates.getValue()).hasSize(expectedCount);
+        assertThat(candidates.getValue()).extracting(sc -> sc.chunk().getId())
+                .containsExactlyElementsOf(IntStream.rangeClosed(1, expectedCount).mapToObj(i -> (long) i).toList());
     }
 
     @Test

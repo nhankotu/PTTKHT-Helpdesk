@@ -22,10 +22,12 @@ public class GeminiClient {
     private final AiProperties aiProperties;
     private final ObjectMapper objectMapper;
     private final RestClient restClient;
+    private final com.helpdesk.common.ai.structured.BoundedJsonHttpTransport boundedTransport;
 
     public GeminiClient(AiProperties aiProperties, ObjectMapper objectMapper) {
         this.aiProperties = aiProperties;
         this.objectMapper = objectMapper;
+        this.boundedTransport = new com.helpdesk.common.ai.structured.BoundedJsonHttpTransport(objectMapper);
         HttpClient httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
                 .build();
@@ -39,6 +41,30 @@ public class GeminiClient {
     public String getModelName() {
         return aiProperties.resolvedGeminiModel();
     }
+
+    /** One HTTP attempt, bounded body/output/time; no JSON repair or transport retry. */
+    public JsonNode generateBoundedJson(String system, String data, String model, int timeoutMs, int outputTokens) {
+        return generateBoundedReply(system, data, model, timeoutMs, outputTokens).json();
+    }
+
+    public com.helpdesk.common.ai.structured.StructuredModelAdapter.Reply generateBoundedReply(String system, String data, String model, int timeoutMs, int outputTokens) {
+        if (aiProperties.geminiApiKey() == null || aiProperties.geminiApiKey().isBlank()) throw new IllegalStateException("AI key missing");
+        if (!model.matches("[A-Za-z0-9._-]{1,100}") || timeoutMs < 100) throw new IllegalArgumentException("Invalid model budget");
+        Map<String, Object> body = Map.of("system_instruction", Map.of("parts", List.of(Map.of("text", system))),
+                "contents", List.of(Map.of("role", "user", "parts", List.of(Map.of("text", data)))),
+                "generationConfig", Map.of("temperature", 0.0, "responseMimeType", "application/json", "maxOutputTokens", outputTokens));
+        JsonNode outer = boundedTransport.post(aiProperties.resolvedGeminiBaseUrl() + "/models/" + model + ":generateContent", "X-goog-api-key", aiProperties.geminiApiKey().trim(), body, timeoutMs);
+                    JsonNode candidate = outer.path("candidates").path(0);
+                    if (!"STOP".equals(candidate.path("finishReason").asText())) throw new IllegalStateException("AI incomplete output");
+                    JsonNode parts = candidate.path("content").path("parts");
+                    if (!parts.isArray() || parts.size() != 1 || !parts.get(0).path("text").isTextual()) throw new IllegalStateException("AI invalid output");
+                    String raw = parts.get(0).path("text").textValue();
+        JsonNode result = boundedTransport.parse(raw);
+        return new com.helpdesk.common.ai.structured.StructuredModelAdapter.Reply(result,
+                usage(outer.path("usageMetadata").path("promptTokenCount")), usage(outer.path("usageMetadata").path("candidatesTokenCount")));
+    }
+
+    private Long usage(JsonNode value) { return value.isIntegralNumber() && value.canConvertToLong() && value.longValue() >= 0 ? value.longValue() : null; }
 
     public JsonNode generateJson(String systemInstruction, String userPrompt) {
         String apiKey = aiProperties.geminiApiKey();

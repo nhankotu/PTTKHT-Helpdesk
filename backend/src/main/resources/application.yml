@@ -64,3 +64,13 @@ app:
     gemini-model: ${GEMINI_MODEL:gemini-2.5-flash}
     gemini-base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com/v1beta}
     timeout-ms: ${AI_TIMEOUT_MS:15000}
+    rag:
+      preprocess-provider: ${AI_RAG_PREPROCESS_PROVIDER:}
+      answer-provider: ${AI_RAG_ANSWER_PROVIDER:}
+      preprocess-model: ${AI_RAG_PREPROCESS_MODEL:}
+      answer-model: ${AI_RAG_ANSWER_MODEL:}
+    openai-compatible:
+      base-url: ${AI_OPENAI_BASE_URL:https://api.openai.com/v1}
+      api-key: ${AI_OPENAI_API_KEY:}
+      allow-no-key: ${AI_OPENAI_ALLOW_NO_KEY:false}
+      token-limit-field: ${AI_OPENAI_TOKEN_LIMIT_FIELD:max_completion_tokens}

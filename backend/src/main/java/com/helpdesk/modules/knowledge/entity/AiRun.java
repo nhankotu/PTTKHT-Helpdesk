@@ -31,7 +31,7 @@ public class AiRun {
     @Column(name = "task_type", nullable = false, length = 25)
     private AiTaskType taskType = AiTaskType.RAG_SUGGESTION;
 
-    @Column(name = "model_name", nullable = false, length = 100)
+    @Column(name = "model_name", nullable = false, length = 260)
     private String modelName;
 
     @Column(name = "prompt_version", nullable = false, length = 50)

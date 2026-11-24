@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -37,11 +38,14 @@ public class AiRagController {
     @Operation(summary = "Chạy AI RAG sinh gợi ý nháp có dẫn nguồn cho ticket (chỉ đọc tin PUBLIC & KB PUBLISHED)")
     public ResponseEntity<AiRunDto> generateSuggestion(
             @PathVariable Long ticketId,
+            @RequestHeader("Idempotency-Key") String suppliedKey,
             @Valid @RequestBody(required = false) RagSuggestionRequest request
     ) {
         Long userId = SecurityUtils.requireCurrentPrincipal().userId();
+        String key = suppliedKey;
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(aiHelpdeskFacade.generateRagSuggestion(ticketId, userId, request));
+                .header("Idempotency-Key", key)
+                .body(aiHelpdeskFacade.generateRagSuggestion(ticketId, userId, request, key));
     }
 
     @GetMapping("/tickets/{ticketId}/ai/suggestions")

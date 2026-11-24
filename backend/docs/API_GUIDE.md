@@ -139,7 +139,7 @@
 **6B. AI RAG (UC07 — 3 endpoints):**
 | Method | Endpoint | Roles | Mô tả |
 |---|---|---|---|
-| `POST` | `/api/v1/tickets/{ticketId}/ai/suggestions` | `AGENT`, `SUPERVISOR` | Chạy AI RAG (Gemini 2.5 Flash) có kiểm chứng `ai_citation` & fallback an toàn |
+| `POST` | `/api/v1/tickets/{ticketId}/ai/suggestions` | `AGENT`, `SUPERVISOR` | RAG hai bước, provider/model độc lập; bắt buộc `Idempotency-Key`; xem [RAG_PIPELINE.md](RAG_PIPELINE.md) |
 | `GET` | `/api/v1/tickets/{ticketId}/ai/suggestions` | `AGENT`, `SUPERVISOR`, `ADMIN` | Lịch sử gợi ý AI của ticket |
 | `POST` | `/api/v1/ai/runs/{aiRunId}/feedback` | `AGENT`, `SUPERVISOR` | Đánh giá gợi ý AI (`ACCEPTED_AS_IS`, `EDITED_AND_SENT`, `REJECTED`) |
 

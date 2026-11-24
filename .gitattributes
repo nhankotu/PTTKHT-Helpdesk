@@ -1,0 +1,3 @@
+# Frozen source/evaluation snapshots must keep identical bytes on every platform.
+data/cellphones/** -text whitespace=cr-at-eol
+data/cellphones/raw/** -diff
